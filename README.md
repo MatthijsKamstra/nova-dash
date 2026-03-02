@@ -26,16 +26,17 @@ You can run it as a **desktop app** (Windows & macOS) or as a **local website** 
 
 ## Features
 
-| Module                  | Description                                                            | Platform     |
-| ----------------------- | ---------------------------------------------------------------------- | ------------ |
-| 🏠 **Dashboard**        | Quick-access overview of all tools, recent to-dos, and Pomodoro status | All          |
-| 💬 **Ollama Chat**      | General-purpose chat using any locally installed Ollama model          | All          |
-| 🖼️ **Image Generator**  | Generate images via a local Ollama diffusion model                     | macOS only\* |
-| 🌐 **Translator**       | Translate text between languages using a local Ollama model            | All          |
-| 🎙️ **Speech to Text**   | Record audio and transcribe it to text                                 | All          |
-| ⏱️ **Pomodoro Tracker** | Focus timer with session logging to SQLite                             | All          |
-| ✅ **To-Do List**       | Simple persistent task manager backed by SQLite                        | All          |
-| 📓 **Obsidian Notes**   | Create and browse Markdown files in your Obsidian vault                | All          |
+| Module                   | Description                                                            | Platform     |
+| ------------------------ | ---------------------------------------------------------------------- | ------------ |
+| 🏠 **Dashboard**         | Quick-access overview of all tools, recent to-dos, and Pomodoro status | All          |
+| 💬 **Ollama Chat**       | General-purpose chat using any locally installed Ollama model          | All          |
+| 🖼️ **Image Generator**   | Generate images via a local Ollama diffusion model                     | macOS only\* |
+| 🌐 **Translator**        | Translate text between languages using a local Ollama model            | All          |
+| 🎙️ **Speech to Text**    | Record audio and transcribe it to text                                 | All          |
+| 💼 **Job Hunting**       | Generate custom CV and motivatiebrief from job postings               | All          |
+| ⏱️ **Pomodoro Tracker**  | Focus timer with session logging to SQLite                             | All          |
+| ✅ **To-Do List**        | Simple persistent task manager backed by SQLite                        | All          |
+| 📓 **Obsidian Notes**    | Create and browse Markdown files in your Obsidian vault                | All          |
 
 > \* Ollama image generation currently only works on macOS. On Windows, NovaDash shows a graceful "not available" message.
 
@@ -135,6 +136,7 @@ nova-dash/
 │   │   ├── image-gen.html   # Ollama Image Generator
 │   │   ├── translator.html  # Ollama Translator
 │   │   ├── stt.html         # Speech-to-Text
+│   │   ├── job-hunting.html # Job Hunting Assistant
 │   │   ├── pomodoro.html    # Pomodoro Tracker
 │   │   ├── todo.html        # To-Do List
 │   │   ├── obsidian.html    # Obsidian/Markdown notes
@@ -171,6 +173,7 @@ Click the moon icon at the bottom of the sidebar to toggle. The preference is sa
 - [ ] Functional Image Generator (macOS)
 - [ ] Functional Translator
 - [ ] Speech-to-Text via Web Speech API / Whisper
+- [x] Job Hunting Assistant (motivatiebrief + CV generation via Ollama)
 - [ ] Pomodoro timer with notifications
 - [ ] To-Do list with SQLite persistence
 - [ ] Obsidian vault integration (read/write `.md` files)

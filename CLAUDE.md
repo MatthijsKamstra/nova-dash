@@ -53,9 +53,10 @@ Below is the current list of planned pages:
 | 3   | **Ollama Image Generator** | Generate images via Ollama (e.g. diffusion models)        | macOS only\* |
 | 4   | **Ollama Translator**      | Translate text using a local Ollama model                 | All          |
 | 5   | **Speech-to-Text**         | Record audio and transcribe to text                       | All          |
-| 6   | **Pomodoro Tracker**       | Focus timer with session logging                          | All          |
-| 7   | **To-Do List**             | Simple task management with SQLite persistence            | All          |
-| 8   | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults      | All          |
+| 6   | **Job Hunting Assistant**  | Generate motivatiebrief and custom CV from job postings   | All          |
+| 7   | **Pomodoro Tracker**       | Focus timer with session logging                          | All          |
+| 8   | **To-Do List**             | Simple task management with SQLite persistence            | All          |
+| 9   | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults      | All          |
 
 > \* Some Ollama features currently only work on macOS. Platform-specific code paths must be handled gracefully (show a message on unsupported platforms).
 
