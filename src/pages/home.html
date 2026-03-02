@@ -1,0 +1,149 @@
+<!-- home.html — Dashboard homepage -->
+<div class="nd-page-title">
+	<i class="bi bi-grid-3x3-gap-fill"></i> NovaDash
+</div>
+
+<!-- Quick-action tiles -->
+<div class="row g-3 mb-4">
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('chat')">
+			<i class="bi bi-chat-dots-fill fs-3 mb-2 d-block text-primary"></i>
+			<div class="fw-semibold">Chat</div>
+			<div class="small text-secondary">Ollama local chat</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('image-gen')">
+			<i class="bi bi-image-fill fs-3 mb-2 d-block text-success"></i>
+			<div class="fw-semibold">Image Generator</div>
+			<div class="small text-secondary">Ollama · macOS only</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('translator')">
+			<i class="bi bi-translate fs-3 mb-2 d-block text-info"></i>
+			<div class="fw-semibold">Translator</div>
+			<div class="small text-secondary">Ollama translation</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('stt')">
+			<i class="bi bi-mic-fill fs-3 mb-2 d-block text-warning"></i>
+			<div class="fw-semibold">Speech to Text</div>
+			<div class="small text-secondary">Record & transcribe</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('pomodoro')">
+			<i class="bi bi-hourglass-split fs-3 mb-2 d-block text-danger"></i>
+			<div class="fw-semibold">Pomodoro</div>
+			<div class="small text-secondary">Focus timer</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('todo')">
+			<i class="bi bi-check2-square fs-3 mb-2 d-block text-success"></i>
+			<div class="fw-semibold">To-Do List</div>
+			<div class="small text-secondary">Tasks & reminders</div>
+		</button>
+	</div>
+
+	<div class="col-6 col-md-4 col-xl-3">
+		<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('obsidian')">
+			<i class="bi bi-journal-richtext fs-3 mb-2 d-block" style="color:#7c3aed;"></i>
+			<div class="fw-semibold">Obsidian Notes</div>
+			<div class="small text-secondary">Markdown integration</div>
+		</button>
+	</div>
+
+</div>
+
+<!-- ── Bottom widgets ──────────────────────────────────────────────── -->
+<div class="row g-3">
+
+	<!-- Recent To-Dos -->
+	<div class="col-12 col-md-6">
+		<div class="nd-card h-100">
+			<div class="d-flex align-items-center justify-content-between mb-3">
+				<span class="fw-semibold"><i class="bi bi-check2-square me-2 text-success"></i>Recent To-Dos</span>
+				<button class="btn btn-sm btn-outline-secondary" onclick="novaDashApp.navigateTo('todo')">View
+					all</button>
+			</div>
+			<ul id="home-todo-list" class="list-unstyled mb-0 small">
+				<li class="text-secondary fst-italic">Loading…</li>
+			</ul>
+		</div>
+	</div>
+
+	<!-- Pomodoro quick-start -->
+	<div class="col-12 col-md-6">
+		<div class="nd-card h-100 d-flex flex-column align-items-center justify-content-center text-center gap-2">
+			<i class="bi bi-hourglass-split fs-1 text-danger"></i>
+			<div class="fw-semibold fs-5" id="home-pomodoro-display">25:00</div>
+			<div class="small text-secondary mb-2">Focus session</div>
+			<button class="btn btn-danger btn-sm px-4" id="home-pomodoro-btn"
+				onclick="novaDashApp.navigateTo('pomodoro')">
+				Start Pomodoro
+			</button>
+		</div>
+	</div>
+
+</div>
+
+<style>
+	.nd-tile {
+		border: none;
+		cursor: pointer;
+		transition: transform 0.1s ease, box-shadow 0.15s ease;
+	}
+
+	.nd-tile:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+	}
+
+	[data-bs-theme="light"] .nd-tile:hover {
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+	}
+</style>
+
+<script>
+	// Page init — called by the router after the HTML is injected
+	window.initPage_home = async function () {
+		const list = document.getElementById('home-todo-list')
+		if (!list) return
+
+		if (typeof window.novaDash !== 'undefined') {
+			// Electron: pull real data
+			const todos = await window.novaDash.todo.getAll()
+			const recent = todos.slice(0, 5)
+			if (recent.length === 0) {
+				list.innerHTML = '<li class="text-secondary fst-italic">No tasks yet.</li>'
+			} else {
+				list.innerHTML = recent.map(t => `
+        <li class="d-flex align-items-center gap-2 py-1 border-bottom border-opacity-10">
+          <i class="bi bi-${t.done ? 'check-circle-fill text-success' : 'circle text-secondary'}"></i>
+          <span class="${t.done ? 'text-decoration-line-through text-secondary' : ''}">${escapeHtml(t.text)}</span>
+        </li>`).join('')
+			}
+		} else {
+			// Browser demo data
+			const demo = ['Review project notes', 'Build NovaDash sidebar', 'Test Ollama integration']
+			list.innerHTML = demo.map(t => `
+      <li class="d-flex align-items-center gap-2 py-1 border-bottom border-opacity-10">
+        <i class="bi bi-circle text-secondary"></i>
+        <span>${t}</span>
+      </li>`).join('')
+		}
+	}
+
+	function escapeHtml(str) {
+		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+	}
+</script>

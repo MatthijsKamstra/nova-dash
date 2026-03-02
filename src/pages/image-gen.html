@@ -1,0 +1,21 @@
+<!-- image-gen.html — Ollama Image Generator placeholder -->
+<div class="nd-placeholder h-100" id="image-gen-root">
+	<i class="bi bi-image-fill text-success"></i>
+	<h2>Image Generator</h2>
+	<p id="image-gen-msg">Generate images locally via Ollama. Enter a prompt and let a local diffusion model do the
+		work.</p>
+	<span class="badge bg-secondary">Coming soon</span>
+</div>
+
+<script>
+	// Warn on non-macOS
+	; (function () {
+		const platform = window.__platform || navigator.platform
+		if (platform !== 'darwin' && !platform.toLowerCase().includes('mac')) {
+			document.getElementById('image-gen-msg').textContent =
+				'Image generation via Ollama is currently only supported on macOS.'
+			document.getElementById('image-gen-root').querySelector('i').className =
+				'bi bi-exclamation-triangle text-warning'
+		}
+	})()
+</script>

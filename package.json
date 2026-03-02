@@ -1,0 +1,55 @@
+{
+  "name": "nova-dash",
+  "version": "0.1.0",
+  "description": "Personal assistant desktop app — VS Code-style sidebar with multiple integrated tools",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "browser-sync start --server src --files 'src/**/*,(!)src/vendor/**' --index index.html --port 3000 --no-open",
+    "dev:electron": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "build": "electron-builder",
+    "copy-vendor": "node scripts/copy-vendor.js",
+    "postinstall": "node scripts/copy-vendor.js"
+  },
+  "keywords": [
+    "electron",
+    "personal-assistant",
+    "ollama",
+    "dashboard"
+  ],
+  "author": "Matthijs Kamstra",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "browser-sync": "^3.0.2",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-reload": "^2.0.0-alpha.1"
+  },
+  "build": {
+    "appId": "com.matthijskamstra.nova-dash",
+    "productName": "NovaDash",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icons/icon.icns"
+    },
+    "win": {
+      "icon": "assets/icons/icon.ico"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/electron-builder/**/*",
+      "!node_modules/browser-sync/**/*"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>NovaDash</title>
+
+	<!-- Bootstrap 5 -->
+	<link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css" />
+	<!-- Bootstrap Icons -->
+	<link rel="stylesheet" href="vendor/bootstrap-icons/font/bootstrap-icons.min.css" />
+	<!-- Custom styles -->
+	<link rel="stylesheet" href="styles/main.css" />
+	<!-- Apply platform class to <html> synchronously before first paint -->
+	<script>
+		if (typeof window.novaDash !== 'undefined' && window.novaDash.platform === 'darwin') {
+			document.documentElement.classList.add('platform-darwin')
+		}
+	</script>
+</head>
+
+<body class="d-flex" style="height:100vh; overflow:hidden;">
+
+	<!-- ── VS Code-style sidebar ────────────────────────────────────────── -->
+	<nav id="sidebar" class="nd-sidebar d-flex flex-column align-items-center pb-3 gap-1">
+
+		<!-- Top nav items -->
+		<div class="nd-sidebar-top d-flex flex-column align-items-center gap-1 flex-grow-1">
+
+			<!-- Logo / home -->
+			<button class="nd-nav-btn active" data-page="home" title="Home">
+				<i class="bi bi-grid-3x3-gap-fill"></i>
+			</button>
+
+			<div class="nd-sidebar-divider"></div>
+
+			<button class="nd-nav-btn" data-page="chat" title="Ollama Chat">
+				<i class="bi bi-chat-dots-fill"></i>
+			</button>
+
+			<button class="nd-nav-btn" data-page="image-gen" title="Image Generator">
+				<i class="bi bi-image-fill"></i>
+			</button>
+
+			<button class="nd-nav-btn" data-page="translator" title="Translator">
+				<i class="bi bi-translate"></i>
+			</button>
+
+			<button class="nd-nav-btn" data-page="stt" title="Speech to Text">
+				<i class="bi bi-mic-fill"></i>
+			</button>
+
+			<div class="nd-sidebar-divider"></div>
+
+			<button class="nd-nav-btn" data-page="pomodoro" title="Pomodoro Timer">
+				<i class="bi bi-hourglass-split"></i>
+			</button>
+
+			<button class="nd-nav-btn" data-page="todo" title="To-Do List">
+				<i class="bi bi-check2-square"></i>
+			</button>
+
+			<button class="nd-nav-btn" data-page="obsidian" title="Obsidian Notes">
+				<i class="bi bi-journal-richtext"></i>
+			</button>
+
+		</div>
+
+		<!-- Bottom: theme toggle + settings -->
+		<div class="nd-sidebar-bottom d-flex flex-column align-items-center gap-1">
+			<button class="nd-nav-btn" id="theme-toggle" title="Toggle dark/light mode">
+				<i class="bi bi-moon-stars-fill" id="theme-icon"></i>
+			</button>
+			<button class="nd-nav-btn" data-page="settings" title="Settings">
+				<i class="bi bi-gear-fill"></i>
+			</button>
+		</div>
+
+	</nav>
+
+	<!-- ── Main content area ────────────────────────────────────────────── -->
+	<main id="content" class="nd-content flex-grow-1 overflow-auto p-4">
+		<!-- Pages are loaded here dynamically -->
+		<div class="d-flex align-items-center justify-content-center h-100 text-secondary">
+			<div class="text-center">
+				<i class="bi bi-grid-3x3-gap-fill display-1 mb-3 d-block"></i>
+				<p>Loading NovaDash…</p>
+			</div>
+		</div>
+	</main>
+
+	<!-- Bootstrap JS bundle -->
+	<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+	<!-- App router -->
+	<script src="app.js"></script>
+</body>
+
+</html>

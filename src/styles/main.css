@@ -1,0 +1,166 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   NovaDash — Custom styles
+   Built on top of Bootstrap 5. Keep custom rules minimal.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+
+.nd-sidebar {
+  width: 52px;
+  min-width: 52px;
+  padding-top: 0.5rem; /* default top padding — overridden on macOS below */
+  background-color: var(--nd-sidebar-bg);
+  border-right: 1px solid var(--nd-sidebar-border);
+  -webkit-app-region: drag; /* allow dragging window from sidebar on macOS */
+  user-select: none;
+}
+
+.nd-nav-btn {
+  -webkit-app-region: no-drag;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--nd-icon-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  position: relative;
+}
+
+.nd-nav-btn:hover {
+  background-color: var(--nd-icon-hover-bg);
+  color: var(--nd-icon-hover-color);
+}
+
+.nd-nav-btn.active {
+  background-color: var(--nd-icon-active-bg);
+  color: var(--nd-icon-active-color);
+}
+
+/* Tooltip via title — enhanced with a left-side pseudo tooltip */
+.nd-nav-btn::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--nd-sidebar-border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+
+.nd-nav-btn:hover::after {
+  opacity: 1;
+}
+
+.nd-sidebar-divider {
+  width: 28px;
+  height: 1px;
+  background-color: var(--nd-sidebar-border);
+  margin: 4px 0;
+}
+
+/* ── Main content ───────────────────────────────────────────────────────── */
+
+.nd-content {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+/* ── CSS variables — dark mode (default) ────────────────────────────────── */
+
+[data-bs-theme="dark"] {
+  --nd-sidebar-bg: #1e1e2e;
+  --nd-sidebar-border: #313244;
+  --nd-icon-color: #6c7086;
+  --nd-icon-hover-bg: #313244;
+  --nd-icon-hover-color: #cdd6f4;
+  --nd-icon-active-bg: #45475a;
+  --nd-icon-active-color: #cba6f7;
+  --nd-card-bg: #181825;
+  --nd-card-border: #313244;
+}
+
+/* ── CSS variables — light mode ─────────────────────────────────────────── */
+
+[data-bs-theme="light"] {
+  --nd-sidebar-bg: #f0f0f0;
+  --nd-sidebar-border: #d0d0d0;
+  --nd-icon-color: #888;
+  --nd-icon-hover-bg: #e0e0e0;
+  --nd-icon-hover-color: #333;
+  --nd-icon-active-bg: #ddd;
+  --nd-icon-active-color: #5c35b5;
+  --nd-card-bg: #ffffff;
+  --nd-card-border: #e0e0e0;
+}
+
+/* ── Utility ────────────────────────────────────────────────────────────── */
+
+.nd-page-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.nd-card {
+  background-color: var(--nd-card-bg);
+  border: 1px solid var(--nd-card-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+/* ── macOS traffic light spacing ────────────────────────────────────────── */
+/* Match VS Code activity bar — traffic lights at corner, icons just below */
+/* trafficLightPosition in main.js positions them at {12, 12}                 */
+
+.platform-darwin .nd-sidebar {
+  padding-top: 50px !important;
+}
+
+/* ── Placeholder page ───────────────────────────────────────────────────── */
+
+.nd-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+  color: var(--nd-icon-color);
+  text-align: center;
+}
+
+.nd-placeholder i {
+  font-size: 4rem;
+}
+
+.nd-placeholder h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+}
+
+.nd-placeholder p {
+  max-width: 380px;
+  font-size: 0.9rem;
+  color: var(--nd-icon-color);
+}
