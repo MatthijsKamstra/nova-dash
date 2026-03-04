@@ -1,0 +1,24 @@
+{
+  "id": "weather",
+  "label": "Local Weather",
+  "icon": "bi-cloud-sun-fill",
+  "description": "Current local weather and short forecast",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Geolocation Permission",
+      "type": "permission",
+      "installed": true,
+      "description": "Browser or Electron geolocation access is needed",
+      "instructions": "Allow location access when prompted"
+    },
+    {
+      "name": "Internet Connection",
+      "type": "network",
+      "installed": true,
+      "description": "Fetches weather data from Open-Meteo API",
+      "instructions": "Ensure internet access is available"
+    }
+  ]
+}

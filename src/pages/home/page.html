@@ -3,11 +3,6 @@
 	<i class="bi bi-grid-3x3-gap-fill"></i> NovaDash
 </div>
 
-<!-- Quick-action tiles -->
-<div class="row g-3 mb-4" id="home-tiles">
-	<!-- Tiles are rendered here dynamically by initPage_home -->
-</div>
-
 <!-- ── Bottom widgets ──────────────────────────────────────────────── -->
 <div class="row g-3">
 
@@ -40,6 +35,33 @@
 
 </div>
 
+<div class="row g-3 mt-1">
+	<div class="col-12 col-md-6">
+		<div class="nd-card h-100 d-flex flex-column justify-content-center text-center">
+			<div class="small text-secondary mb-2"><i class="bi bi-clock-fill me-1"></i>Local Time</div>
+			<div id="home-time-clock" class="display-6 fw-semibold">--:--:--</div>
+			<div id="home-time-date" class="small text-secondary mt-1">--</div>
+		</div>
+	</div>
+
+	<div class="col-12 col-md-6">
+		<div class="nd-card h-100">
+			<div class="d-flex align-items-center justify-content-between mb-2">
+				<div class="fw-semibold"><i class="bi bi-cloud-sun-fill me-2"></i>Local Weather</div>
+				<button class="btn btn-sm btn-outline-secondary" id="home-weather-refresh" type="button">
+					<i class="bi bi-arrow-clockwise"></i>
+				</button>
+			</div>
+			<div id="home-weather-content" class="small text-secondary">Loading weather…</div>
+		</div>
+	</div>
+</div>
+
+<!-- Quick-action tiles -->
+<div class="row g-3 mt-1" id="home-tiles">
+	<!-- Tiles are rendered here dynamically by initPage_home -->
+</div>
+
 <style>
 	.nd-tile {
 		border: none;
@@ -58,8 +80,101 @@
 </style>
 
 <script>
+	let homeClockInterval = null
+
 	function escapeHtml(str) {
 		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+	}
+
+	function updateHomeClock() {
+		const now = new Date()
+		const clockEl = document.getElementById('home-time-clock')
+		const dateEl = document.getElementById('home-time-date')
+		if (!clockEl || !dateEl) return
+
+		clockEl.textContent = now.toLocaleTimeString([], {
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit'
+		})
+		dateEl.textContent = now.toLocaleDateString([], {
+			weekday: 'long',
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric'
+		})
+	}
+
+	function getWeatherText(code) {
+		const labels = {
+			0: 'Clear sky',
+			1: 'Mainly clear',
+			2: 'Partly cloudy',
+			3: 'Overcast',
+			45: 'Fog',
+			48: 'Fog',
+			51: 'Light drizzle',
+			53: 'Drizzle',
+			55: 'Dense drizzle',
+			61: 'Light rain',
+			63: 'Rain',
+			65: 'Heavy rain',
+			71: 'Light snow',
+			73: 'Snow',
+			75: 'Heavy snow',
+			80: 'Rain showers',
+			81: 'Heavy showers',
+			82: 'Violent showers',
+			95: 'Thunderstorm'
+		}
+		return labels[code] || 'Unknown'
+	}
+
+	function getWeatherIconClass(code) {
+		if (code === 0) return 'bi-brightness-high-fill text-warning'
+		if (code <= 3) return 'bi-cloud-sun-fill text-info'
+		if (code >= 45 && code <= 48) return 'bi-cloud-fog2-fill text-secondary'
+		if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) return 'bi-cloud-rain-fill text-primary'
+		if (code >= 71 && code <= 75) return 'bi-cloud-snow-fill text-info'
+		if (code >= 95) return 'bi-cloud-lightning-rain-fill text-warning'
+		return 'bi-cloud-fill text-secondary'
+	}
+
+	async function loadHomeWeather() {
+		const weatherEl = document.getElementById('home-weather-content')
+		if (!weatherEl) return
+		weatherEl.textContent = 'Loading weather…'
+
+		if (!navigator.geolocation) {
+			weatherEl.textContent = 'Geolocation is not supported on this device.'
+			return
+		}
+
+		navigator.geolocation.getCurrentPosition(async (position) => {
+			try {
+				const lat = position.coords.latitude
+				const lon = position.coords.longitude
+				const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto`
+				const response = await fetch(url)
+				if (!response.ok) {
+					throw new Error('Weather service unavailable')
+				}
+				const data = await response.json()
+				const current = data.current
+				weatherEl.innerHTML = `
+					<div class="d-flex align-items-center gap-2">
+						<i class="bi ${getWeatherIconClass(current.weather_code)} fs-5"></i>
+						<span class="fw-semibold fs-5">${Math.round(current.temperature_2m)}°C</span>
+						<span>${getWeatherText(current.weather_code)}</span>
+					</div>
+					<div class="text-secondary mt-1">Wind ${Math.round(current.wind_speed_10m)} km/h</div>
+				`
+			} catch (error) {
+				weatherEl.textContent = 'Could not load weather data right now.'
+			}
+		}, () => {
+			weatherEl.textContent = 'Location permission needed for local weather.'
+		})
 	}
 
 	// Page init — called by the router after the HTML is injected
@@ -70,18 +185,30 @@
 
 		if (!enabledPlugins || enabledPlugins.length === 0) {
 			tilesContainer.innerHTML = '<div class="col-12"><div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>No plugins enabled. Go to Settings to enable some modules.</div></div>'
-			return
+		} else {
+			tilesContainer.innerHTML = enabledPlugins.map(plugin => `
+				<div class="col-6 col-md-4 col-xl-3">
+					<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('${plugin.page}')">
+						<i class="bi ${plugin.icon} fs-3 mb-2 d-block"></i>
+						<div class="fw-semibold">${plugin.label}</div>
+						<div class="small text-secondary">${plugin.description || ''}</div>
+					</button>
+				</div>
+			`).join('')
 		}
 
-		tilesContainer.innerHTML = enabledPlugins.map(plugin => `
-			<div class="col-6 col-md-4 col-xl-3">
-				<button class="nd-card w-100 text-start nd-tile" onclick="novaDashApp.navigateTo('${plugin.page}')">
-					<i class="bi ${plugin.icon} fs-3 mb-2 d-block"></i>
-					<div class="fw-semibold">${plugin.label}</div>
-					<div class="small text-secondary">${plugin.description || ''}</div>
-				</button>
-			</div>
-		`).join('')
+		updateHomeClock()
+		if (homeClockInterval) {
+			clearInterval(homeClockInterval)
+		}
+		homeClockInterval = setInterval(updateHomeClock, 1000)
+
+		const refreshBtn = document.getElementById('home-weather-refresh')
+		if (refreshBtn && !refreshBtn.dataset.bound) {
+			refreshBtn.addEventListener('click', () => loadHomeWeather())
+			refreshBtn.dataset.bound = '1'
+		}
+		await loadHomeWeather()
 
 		// Load todos
 		const list = document.getElementById('home-todo-list')

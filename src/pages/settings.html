@@ -1,4 +1,4 @@
-<!-- settings.html — Settings page -->
+<!-- settings.html — Settings placeholder -->
 <div class="nd-page-title">
 	<i class="bi bi-gear-fill"></i> Settings
 </div>
@@ -31,17 +31,8 @@
 			</div>
 			<small class="text-secondary d-block mt-3">
 				<i class="bi bi-info-circle me-1"></i>
-				Disable modules you don't use to keep your sidebar clean. Requires browser restart.
+				Disable modules you don't use to keep your sidebar clean.
 			</small>
-		</div>
-	</div>
-
-	<div class="col-12">
-		<div class="nd-card">
-			<div class="fw-semibold mb-3">Plugin Requirements</div>
-			<div id="requirements-list" class="small">
-				<!-- Plugin requirements will be listed here -->
-			</div>
 		</div>
 	</div>
 
@@ -105,22 +96,13 @@
 		document.getElementById('ollama-url').value = savedUrl
 		document.getElementById('obsidian-path').value = savedVault
 
-		// Render plugins list with requirements
-		const allPlugins = await getAllPlugins()  // ← Use await!
-
-		if (!allPlugins || allPlugins.length === 0) {
-			document.getElementById('plugins-list').innerHTML = '<p class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>No plugins loaded. Please refresh the page.</p>'
-			return
-		}
-
+		// Render plugins list
+		const allPlugins = getAllPlugins()
 		const enabledIds = await getEnabledPluginIds()
 		const platform = window.__platform || 'unknown'
 		const pluginsList = document.getElementById('plugins-list')
-		const requirementsList = document.getElementById('requirements-list')
 
 		pluginsList.innerHTML = ''
-		const allRequirements = []
-
 		allPlugins.forEach(plugin => {
 			// Skip if not available on this platform
 			if (plugin.requiredPlatform && plugin.requiredPlatform !== platform) {
@@ -129,38 +111,20 @@
 
 			const isEnabled = enabledIds.includes(plugin.id)
 			const div = document.createElement('div')
-			div.className = 'd-flex align-items-center justify-content-between p-3 border rounded mb-2'
-			div.style.backgroundColor = 'var(--bs-body-bg)'
+			div.className = 'd-flex align-items-center justify-content-between p-2 border rounded'
 			div.innerHTML = `
-				<div class="d-flex align-items-center gap-3" style="flex: 1;">
-					<i class="bi ${plugin.icon} fs-5"></i>
-					<div>
-						<div class="fw-semibold">${plugin.label}</div>
-						<small class="text-secondary">${plugin.description || 'No description'}</small>
-					</div>
+				<div class="d-flex align-items-center gap-2">
+					<i class="bi ${plugin.icon}" style="font-size: 1.1rem;"></i>
+					<span class="fw-500">${plugin.label}</span>
 				</div>
 				<div class="form-check form-switch m-0">
 					<input class="form-check-input plugin-toggle" type="checkbox" id="plugin-${plugin.id}"
 						${isEnabled ? 'checked' : ''}
 						data-plugin-id="${plugin.id}"
-						style="cursor: pointer; width: 3em; height: 1.5em;">
+						style="cursor: pointer;">
 				</div>
 			`
 			pluginsList.appendChild(div)
-
-			// Collect requirements
-			if (plugin.requirements && plugin.requirements.length > 0) {
-				plugin.requirements.forEach(req => {
-					allRequirements.push({
-						plugin: plugin.label,
-						requirement: req.name,
-						type: req.type,
-						installed: req.installed,
-						description: req.description,
-						instructions: req.instructions
-					})
-				})
-			}
 
 			// Add event listener
 			const checkbox = div.querySelector('.plugin-toggle')
@@ -168,29 +132,5 @@
 				togglePlugin(plugin.id, e.target.checked)
 			})
 		})
-
-		// Render requirements
-		if (allRequirements.length > 0) {
-			requirementsList.innerHTML = '<div class="d-flex flex-column gap-3">' + allRequirements.map(req => `
-				<div class="d-flex align-items-start gap-3 p-2 border-start" style="border-left-width: 3px !important;">
-					<div style="flex-shrink: 0;">
-						<i class="bi bi-${req.installed ? 'check-circle-fill text-success' : 'exclamation-circle-fill text-warning'} fs-5"></i>
-					</div>
-					<div style="flex: 1; min-width: 0;">
-						<div class="fw-semibold text-small">${req.plugin}</div>
-						<div class="small text-secondary mb-1">${req.requirement}</div>
-						<div class="small text-muted">${req.description}</div>
-						${req.instructions ? `<div class="small mt-2 p-2 bg-secondary bg-opacity-10 rounded" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85em;">${escapeHtml(req.instructions)}</div>` : ''}
-					</div>
-				</div>
-			`).join('') + '</div>'
-		} else {
-			requirementsList.innerHTML = '<p class="text-secondary fst-italic"><i class="bi bi-check-circle me-1"></i>All available - no additional setup required!</p>'
-		}
-
-	}
-
-	function escapeHtml(str) {
-		return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 	}
 </script>

@@ -28,7 +28,7 @@ You can run it as a **desktop app** (Windows & macOS) or as a **local website** 
 
 | Module                  | Description                                                            | Platform     |
 | ----------------------- | ---------------------------------------------------------------------- | ------------ |
-| 🏠 **Dashboard**        | Quick-access overview of all tools, recent to-dos, and Pomodoro status | All          |
+| 🏠 **Dashboard**        | Quick-access overview, recent to-dos, Pomodoro, local time and weather | All          |
 | 💬 **Ollama Chat**      | General-purpose chat using any locally installed Ollama model          | All          |
 | 🖼️ **Image Generator**  | Generate images via a local Ollama diffusion model                     | macOS only\* |
 | 🌐 **Translator**       | Translate text between languages using a local Ollama model            | All          |
@@ -37,6 +37,8 @@ You can run it as a **desktop app** (Windows & macOS) or as a **local website** 
 | ⏱️ **Pomodoro Tracker** | Focus timer with session logging to SQLite                             | All          |
 | ✅ **To-Do List**       | Simple persistent task manager backed by SQLite                        | All          |
 | 📓 **Obsidian Notes**   | Create and browse Markdown files in your Obsidian vault                | All          |
+| 🕒 **Time**             | Live local clock/date/timezone                                         | All          |
+| 🌤️ **Local Weather**    | Current local weather and short forecast via geolocation               | All          |
 
 > \* Ollama image generation currently only works on macOS. On Windows, NovaDash shows a graceful "not available" message.
 
@@ -128,19 +130,22 @@ nova-dash/
 ├── src/
 │   ├── index.html           # App shell — sidebar + #content area
 │   ├── app.js               # Client-side router, theme, platform detection
+│   ├── plugins.js           # Dynamic plugin loader/registry
 │   ├── styles/
 │   │   └── main.css         # Custom styles on top of Bootstrap
 │   ├── pages/
-│   │   ├── home.html        # Dashboard homepage
-│   │   ├── chat.html        # Ollama Chat
-│   │   ├── image-gen.html   # Ollama Image Generator
-│   │   ├── translator.html  # Ollama Translator
-│   │   ├── stt.html         # Speech-to-Text
-│   │   ├── job-hunting.html # Job Hunting Assistant
-│   │   ├── pomodoro.html    # Pomodoro Tracker
-│   │   ├── todo.html        # To-Do List
-│   │   ├── obsidian.html    # Obsidian/Markdown notes
-│   │   └── settings.html    # App settings
+│   │   ├── home/
+│   │   │   └── page.html    # Dashboard special page
+│   │   └── settings/
+│   │       └── page.html    # Settings special page
+│   ├── plugins/
+│   │   ├── chat/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html
+│   │   ├── weather/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html
+│   │   └── ...
 │   ├── vendor/              # Local Bootstrap assets (auto-generated, do not edit)
 │   └── db/
 │       └── database.js      # SQLite schema and all CRUD functions
@@ -153,7 +158,9 @@ nova-dash/
 ## Architecture notes
 
 - **Self-contained** — no CDN links, no runtime internet fetching. Everything ships in one folder, packaged by `electron-builder`.
+- **Manifest-based plugin system** — plugins live in `src/plugins/<id>/` and define metadata in `manifest.json`.
 - **Pages are HTML fragments** loaded into `#content` via `fetch()`. No iframes, no full navigation.
+- **Routing split** — special pages (`home`, `settings`) load from `src/pages/<id>/page.html`, plugin routes load from `src/plugins/<id>/plugin.html`.
 - **SQLite tables:** `todos`, `pomodoro_sessions`, `settings`, `notes`
 - **IPC bridge:** all database calls from the renderer go through `window.novaDash.*` which is exposed via `contextBridge` in `preload.js`.
 - **Browser mode falls back gracefully** — pages detect whether `window.novaDash` is available and use demo data when running in the browser.
@@ -179,7 +186,9 @@ Click the moon icon at the bottom of the sidebar to toggle. The preference is sa
 - [ ] Obsidian vault integration (read/write `.md` files)
 - [ ] Keyboard shortcuts to switch pages (like VS Code)
 - [ ] Tray icon support
-- [ ] Plugin/module system for new tools
+- [x] Plugin/module system for new tools (manifest-based)
+- [x] Time plugin
+- [x] Local weather plugin
 - [ ] Windows build & test
 
 ---

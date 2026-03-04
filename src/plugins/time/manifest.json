@@ -1,0 +1,17 @@
+{
+  "id": "time",
+  "label": "Time",
+  "icon": "bi-clock-fill",
+  "description": "Live local clock with current date and timezone",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "System Clock",
+      "type": "system",
+      "installed": true,
+      "description": "Uses your local system time and timezone",
+      "instructions": "No setup required"
+    }
+  ]
+}

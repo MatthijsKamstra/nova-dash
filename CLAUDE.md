@@ -46,17 +46,19 @@ It is designed to be:
 Each module is developed as a standalone component and integrated as a page in NovaDash.
 Below is the current list of planned pages:
 
-| #   | Page                       | Description                                               | Platform     |
-| --- | -------------------------- | --------------------------------------------------------- | ------------ |
-| 1   | **Dashboard (Home)**       | Overview of most-used components and quick access widgets | All          |
-| 2   | **Ollama Chat**            | General chat interface powered by a local Ollama model    | All          |
-| 3   | **Ollama Image Generator** | Generate images via Ollama (e.g. diffusion models)        | macOS only\* |
-| 4   | **Ollama Translator**      | Translate text using a local Ollama model                 | All          |
-| 5   | **Speech-to-Text**         | Record audio and transcribe to text                       | All          |
-| 6   | **Job Hunting Assistant**  | Generate motivatiebrief and custom CV from job postings   | All          |
-| 7   | **Pomodoro Tracker**       | Focus timer with session logging                          | All          |
-| 8   | **To-Do List**             | Simple task management with SQLite persistence            | All          |
-| 9   | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults      | All          |
+| #   | Module                     | Description                                             | Platform     |
+| --- | -------------------------- | ------------------------------------------------------- | ------------ |
+| 1   | **Dashboard (Home)**       | Overview, quick tiles, recent todos, home time/weather  | All          |
+| 2   | **Ollama Chat**            | General chat interface powered by a local Ollama model  | All          |
+| 3   | **Ollama Image Generator** | Generate images via Ollama (e.g. diffusion models)      | macOS only\* |
+| 4   | **Ollama Translator**      | Translate text using a local Ollama model               | All          |
+| 5   | **Speech-to-Text**         | Record audio and transcribe to text                     | All          |
+| 6   | **Job Hunting Assistant**  | Generate motivatiebrief and custom CV from job postings | All          |
+| 7   | **Pomodoro Tracker**       | Focus timer with session logging                        | All          |
+| 8   | **To-Do List**             | Simple task management with SQLite persistence          | All          |
+| 9   | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults    | All          |
+| 10  | **Time**                   | Live local clock/date/timezone                          | All          |
+| 11  | **Local Weather**          | Local weather + short forecast via geolocation          | All          |
 
 > \* Some Ollama features currently only work on macOS. Platform-specific code paths must be handled gracefully (show a message on unsupported platforms).
 
@@ -68,7 +70,8 @@ The homepage shows a **quick-access overview** of the most-used modules:
 
 - Recent to-do items
 - Pomodoro session status / start button
-- Recent Obsidian notes
+- Local time widget
+- Local weather widget
 - Quick shortcut tiles to all other modules
 
 ---
@@ -78,8 +81,9 @@ The homepage shows a **quick-access overview** of the most-used modules:
 - **Single folder, self-contained**: The app must be packageable with `electron-builder` without any runtime web fetching.
 - **SQLite** is used for persisting: to-do items, pomodoro sessions, settings, and other local data.
 - **Ollama** runs locally on the user's machine. The app communicates with the Ollama REST API (`http://localhost:11434`).
-- Pages that are not yet built should have a **placeholder UI** so the sidebar and navigation can be tested end-to-end.
-- The **web mode** (browser testing) should work with a simple `npm run dev` or `npm start` that opens a browser with live reload.
+- Plugins are **manifest-driven** from `src/plugins/<id>/manifest.json` and rendered dynamically in the sidebar/settings.
+- `home` and `settings` are **special pages** under `src/pages/<id>/page.html`; plugin UIs live under `src/plugins/<id>/plugin.html`.
+- The **web mode** (browser testing) runs with `npm run dev` (BrowserSync).
 
 ---
 
@@ -101,7 +105,7 @@ npm run build
 
 ---
 
-## Folder Structure (target)
+## Folder Structure (current)
 
 ```
 nova-dash/
@@ -114,17 +118,22 @@ nova-dash/
 ├── src/
 │   ├── index.html           # App shell (sidebar + content area)
 │   ├── app.js               # Frontend router / logic
+│   ├── plugins.js           # Plugin loader/registry
 │   ├── styles/
 │   │   └── main.css         # Custom styles on top of Bootstrap
 │   ├── pages/
-│   │   ├── home.html        # Dashboard homepage
-│   │   ├── chat.html        # Ollama Chat
-│   │   ├── image-gen.html   # Ollama Image Generator
-│   │   ├── translator.html  # Ollama Translator
-│   │   ├── stt.html         # Speech-to-Text
-│   │   ├── pomodoro.html    # Pomodoro Tracker
-│   │   ├── todo.html        # To-Do List
-│   │   └── obsidian.html    # Obsidian Integration
+│   │   ├── home/
+│   │   │   └── page.html    # Dashboard special page
+│   │   └── settings/
+│   │       └── page.html    # Settings special page
+│   ├── plugins/
+│   │   ├── chat/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html
+│   │   ├── weather/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html
+│   │   └── ...
 │   └── db/
 │       └── database.js      # SQLite setup and queries
 ├── assets/
@@ -145,7 +154,7 @@ nova-dash/
 
 ## Future Considerations
 
-- Plugin/module system so new tools can be added without touching core code
+- Dynamic plugin discovery (remove manual plugin ID list)
 - Sync / backup of SQLite database
 - Keyboard shortcuts for switching between pages (like VS Code)
 - Notification system for Pomodoro timers

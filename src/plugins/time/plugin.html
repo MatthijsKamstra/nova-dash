@@ -1,0 +1,53 @@
+<div class="nd-page-title">
+	<i class="bi bi-clock-fill"></i> Time
+</div>
+
+<div class="row g-3" style="max-width: 720px;">
+	<div class="col-12">
+		<div class="nd-card text-center py-4">
+			<div class="small text-secondary mb-2">Local Time</div>
+			<div id="time-clock" class="display-4 fw-semibold">--:--:--</div>
+			<div id="time-date" class="mt-2 text-secondary">--</div>
+			<div id="time-zone" class="small mt-2">--</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	(function () {
+		let clockIntervalId = null
+
+		function updateClock() {
+			const now = new Date()
+			const clockEl = document.getElementById('time-clock')
+			const dateEl = document.getElementById('time-date')
+			const zoneEl = document.getElementById('time-zone')
+
+			if (!clockEl || !dateEl || !zoneEl) return
+
+			clockEl.textContent = now.toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit'
+			})
+
+			dateEl.textContent = now.toLocaleDateString([], {
+				weekday: 'long',
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			})
+
+			const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown timezone'
+			zoneEl.textContent = zone
+		}
+
+		window.initPage_time = async function () {
+			if (clockIntervalId) {
+				clearInterval(clockIntervalId)
+			}
+			updateClock()
+			clockIntervalId = setInterval(updateClock, 1000)
+		}
+	})()
+</script>

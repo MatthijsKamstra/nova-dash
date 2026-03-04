@@ -1,6 +1,6 @@
 /**
  * NovaDash Plugin System
- * 
+ *
  * Dynamically loads plugins from src/plugins/[id]/manifest.json files.
  * Each plugin folder contains:
  *   - manifest.json (metadata: name, icon, requirements, etc.)
@@ -25,6 +25,8 @@ async function loadPlugins() {
 		'image-gen',
 		'translator',
 		'stt',
+		'time',
+		'weather',
 		'job-hunting',
 		'pomodoro',
 		'todo',
@@ -35,24 +37,24 @@ async function loadPlugins() {
 		for (const pluginId of pluginIds) {
 			try {
 				const manifestPath = `plugins/${pluginId}/manifest.json`
-				
+
 				const response = await fetch(manifestPath)
 				if (!response.ok) {
 					console.warn(`[loadPlugins] Failed to load: ${manifestPath} (${response.status})`)
 					continue
 				}
-				
+
 				const manifest = await response.json()
-				
+
 				// Add page reference (where to load the HTML from)
 				manifest.page = pluginId
-				
+
 				PLUGINS.push(manifest)
 			} catch (err) {
 				console.error(`[loadPlugins] Error loading plugin ${pluginId}:`, err)
 			}
 		}
-		
+
 		return PLUGINS
 	} catch (err) {
 		console.error('[loadPlugins] Fatal error:', err)
@@ -101,7 +103,7 @@ async function getEnabledPlugins() {
  */
 async function getEnabledPluginIds() {
 	let enabled = localStorage.getItem('nd-plugins-enabled')
-	
+
 	if (!enabled && typeof window.novaDash !== 'undefined') {
 		// Try to load from Electron settings
 		try {
@@ -132,13 +134,13 @@ async function getEnabledPluginIds() {
  */
 async function setPluginEnabled(pluginId, enabled) {
 	const current = await getEnabledPluginIds()
-	
+
 	const updated = enabled
 		? [...new Set([...current, pluginId])]
 		: current.filter(id => id !== pluginId)
 
 	const json = JSON.stringify(updated)
-	
+
 	localStorage.setItem('nd-plugins-enabled', json)
 
 	if (typeof window.novaDash !== 'undefined') {

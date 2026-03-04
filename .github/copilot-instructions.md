@@ -28,6 +28,7 @@ Always read `CLAUDE.md` in the project root for full context before making decis
 - Custom CSS goes in `src/styles/main.css`
 - Use **Bootstrap Icons** (`bi bi-*`) for all icons
 - Page content is loaded into a `#content` div via the sidebar router (`app.js`)
+- Plugins are loaded via `src/plugins.js` from `src/plugins/<id>/manifest.json`
 - SQLite queries are centralised in `src/db/database.js`
 - Support both **dark mode** and **light mode** using Bootstrap's `data-bs-theme` on `<html>`
 
@@ -41,21 +42,28 @@ Always read `CLAUDE.md` in the project root for full context before making decis
 - Sidebar icons use Bootstrap Icons and are navigable (click = load page)
 - Active page icon gets an `active` class
 - Do NOT use iframes for pages — load HTML fragments dynamically via `fetch()` into `#content`
+- Keep routing conventions:
+  - `home` and `settings` are special pages: `src/pages/<id>/page.html`
+  - Feature modules are plugins: `src/plugins/<id>/plugin.html`
 
 ---
 
 ## Pages / Modules
 
-| Page key     | File                        | Description                         |
-| ------------ | --------------------------- | ----------------------------------- |
-| `home`       | `src/pages/home.html`       | Dashboard with quick-access widgets |
-| `chat`       | `src/pages/chat.html`       | Ollama Chat interface               |
-| `image-gen`  | `src/pages/image-gen.html`  | Ollama Image Generator (macOS only) |
-| `translator` | `src/pages/translator.html` | Ollama Translator                   |
-| `stt`        | `src/pages/stt.html`        | Speech-to-Text                      |
-| `pomodoro`   | `src/pages/pomodoro.html`   | Pomodoro Tracker                    |
-| `todo`       | `src/pages/todo.html`       | To-Do List                          |
-| `obsidian`   | `src/pages/obsidian.html`   | Obsidian Markdown integration       |
+| Route key     | File                                  | Description                         |
+| ------------- | ------------------------------------- | ----------------------------------- |
+| `home`        | `src/pages/home/page.html`            | Dashboard special page              |
+| `settings`    | `src/pages/settings/page.html`        | Settings special page               |
+| `chat`        | `src/plugins/chat/plugin.html`        | Ollama Chat                         |
+| `image-gen`   | `src/plugins/image-gen/plugin.html`   | Ollama Image Generator (macOS only) |
+| `translator`  | `src/plugins/translator/plugin.html`  | Ollama Translator                   |
+| `stt`         | `src/plugins/stt/plugin.html`         | Speech-to-Text                      |
+| `job-hunting` | `src/plugins/job-hunting/plugin.html` | Job Hunting Assistant               |
+| `pomodoro`    | `src/plugins/pomodoro/plugin.html`    | Pomodoro Tracker                    |
+| `todo`        | `src/plugins/todo/plugin.html`        | To-Do List                          |
+| `obsidian`    | `src/plugins/obsidian/plugin.html`    | Obsidian Markdown integration       |
+| `time`        | `src/plugins/time/plugin.html`        | Local time widget page              |
+| `weather`     | `src/plugins/weather/plugin.html`     | Local weather page                  |
 
 ---
 
@@ -82,6 +90,7 @@ Always read `CLAUDE.md` in the project root for full context before making decis
 **Do:**
 
 - Keep each page as an independent HTML fragment
+- Keep each plugin as `manifest.json` + `plugin.html` in `src/plugins/<id>/`
 - Use Bootstrap grid and utilities for layout
 - Handle platform differences gracefully (macOS vs Windows)
 - Keep the app self-contained — no CDN links in production builds
@@ -92,3 +101,4 @@ Always read `CLAUDE.md` in the project root for full context before making decis
 - Don't fetch assets from the internet at runtime
 - Don't put business logic in HTML files — keep JS in separate `.js` files
 - Don't hardcode file paths — use `path.join` and user-configurable settings
+- Don't add new flat pages under `src/pages/*.html` for features; use plugin folders

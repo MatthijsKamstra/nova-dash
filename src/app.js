@@ -52,16 +52,16 @@
 		}
 
 		const enabledPlugins = await window.getEnabledPlugins()
-		
+
 		const homeBtn = top.querySelector('.nd-nav-btn[data-page="home"]')
 		if (!homeBtn) {
 			return
 		}
-		
+
 		// Keep home & divider, remove old plugin buttons
 		const oldButtons = top.querySelectorAll('.nd-nav-btn[data-page]:not([data-page="home"])')
 		oldButtons.forEach(btn => btn.remove())
-		
+
 		const oldDividers = top.querySelectorAll('.nd-sidebar-divider')
 		oldDividers.forEach(div => div.remove())
 
@@ -139,11 +139,11 @@
 			// - 'settings' -> pages/settings/page.html
 			const specialPages = ['home', 'settings']
 			const isSpecialPage = specialPages.includes(page)
-			
+
 			// Check if it's a plugin
 			const isPlugin = !isSpecialPage && window.PLUGINS && window.PLUGINS.some(p => p.page === page)
-			
-			const path = isPlugin 
+
+			const path = isPlugin
 				? `plugins/${page}/plugin.html`
 				: `pages/${page}/page.html`
 
@@ -151,7 +151,7 @@
 			if (!res.ok) {
 				throw new Error('Page not found: ' + path)
 			}
-			
+
 			const html = await res.text()
 			content.innerHTML = html
 			executePageScripts(content)
