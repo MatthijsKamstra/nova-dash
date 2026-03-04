@@ -9,11 +9,14 @@
 	// ── State ──────────────────────────────────────────────────────────────
 	let currentPage = 'home'
 	const isElectron = typeof window.novaDash !== 'undefined'
+	let sidebarBound = false
 
 	// ── Boot ───────────────────────────────────────────────────────────────
 	document.addEventListener('DOMContentLoaded', async () => {
 		await applyPlatformClass()
 		restoreTheme()
+		await window.loadPlugins()           // Load plugin manifests
+		await renderPluginsSidebar()
 		bindSidebar()
 		bindThemeToggle()
 		await navigateTo('home')
@@ -34,9 +37,80 @@
 	}
 
 	// ── Sidebar ────────────────────────────────────────────────────────────
+	/**
+	 * Render sidebar buttons based on enabled plugins
+	 */
+	async function renderPluginsSidebar() {
+		const top = document.querySelector('.nd-sidebar-top')
+		if (!top) {
+			return
+		}
+
+		// Ensure plugins are loaded
+		if (!window.PLUGINS || window.PLUGINS.length === 0) {
+			await window.loadPlugins()
+		}
+
+		const enabledPlugins = await window.getEnabledPlugins()
+		
+		const homeBtn = top.querySelector('.nd-nav-btn[data-page="home"]')
+		if (!homeBtn) {
+			return
+		}
+		
+		// Keep home & divider, remove old plugin buttons
+		const oldButtons = top.querySelectorAll('.nd-nav-btn[data-page]:not([data-page="home"])')
+		oldButtons.forEach(btn => btn.remove())
+		
+		const oldDividers = top.querySelectorAll('.nd-sidebar-divider')
+		oldDividers.forEach(div => div.remove())
+
+		// Insert divider after home
+		if (homeBtn && homeBtn.nextSibling) {
+			const divider = document.createElement('div')
+			divider.className = 'nd-sidebar-divider'
+			homeBtn.parentNode.insertBefore(divider, homeBtn.nextSibling)
+		}
+
+		// Add enabled plugin buttons
+		enabledPlugins.forEach(plugin => {
+			const btn = document.createElement('button')
+			btn.className = 'nd-nav-btn'
+			btn.setAttribute('data-page', plugin.page)
+			btn.setAttribute('title', plugin.label)
+			btn.innerHTML = `<i class="bi ${plugin.icon}"></i>`
+			top.appendChild(btn)
+		})
+
+		// Add another divider before settings
+		const divider = document.createElement('div')
+		divider.className = 'nd-sidebar-divider'
+		top.appendChild(divider)
+	}
+
 	function bindSidebar() {
-		document.querySelectorAll('.nd-nav-btn[data-page]').forEach(btn => {
-			btn.addEventListener('click', () => navigateTo(btn.dataset.page))
+		if (sidebarBound) return
+		const sidebar = document.getElementById('sidebar')
+		if (!sidebar) return
+
+		sidebar.addEventListener('click', (event) => {
+			const btn = event.target.closest('.nd-nav-btn[data-page]')
+			if (!btn) return
+			navigateTo(btn.dataset.page)
+		})
+
+		sidebarBound = true
+	}
+
+	function executePageScripts(container) {
+		const scripts = container.querySelectorAll('script')
+		scripts.forEach(oldScript => {
+			const newScript = document.createElement('script')
+			for (const attr of oldScript.attributes) {
+				newScript.setAttribute(attr.name, attr.value)
+			}
+			newScript.textContent = oldScript.textContent
+			oldScript.replaceWith(newScript)
 		})
 	}
 
@@ -55,15 +129,38 @@
 		content.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-secondary"><div class="spinner-border spinner-border-sm me-2"></div> Loading…</div>'
 
 		try {
-			// Pages live at pages/<page>.html relative to index.html
-			const res = await fetch('pages/' + page + '.html')
-			if (!res.ok) throw new Error('Page not found: ' + page)
+			// Ensure plugins are loaded
+			if (!window.PLUGINS || window.PLUGINS.length === 0) {
+				await window.loadPlugins()
+			}
+
+			// SPECIAL PAGES (handleiden niet als plugins):
+			// - 'home' -> pages/home/page.html
+			// - 'settings' -> pages/settings/page.html
+			const specialPages = ['home', 'settings']
+			const isSpecialPage = specialPages.includes(page)
+			
+			// Check if it's a plugin
+			const isPlugin = !isSpecialPage && window.PLUGINS && window.PLUGINS.some(p => p.page === page)
+			
+			const path = isPlugin 
+				? `plugins/${page}/plugin.html`
+				: `pages/${page}/page.html`
+
+			const res = await fetch(path)
+			if (!res.ok) {
+				throw new Error('Page not found: ' + path)
+			}
+			
 			const html = await res.text()
 			content.innerHTML = html
+			executePageScripts(content)
 
 			// Run any inline init function the page exposes
-			if (typeof window['initPage_' + page] === 'function') {
-				window['initPage_' + page]()
+			// Replace hyphens with underscores for function name
+			const funcName = 'initPage_' + page.replace(/-/g, '_')
+			if (typeof window[funcName] === 'function') {
+				await window[funcName]()
 			}
 		} catch (err) {
 			content.innerHTML = notFoundTemplate(page)
@@ -108,5 +205,7 @@
 	}
 
 	// ── Expose for page scripts ────────────────────────────────────────────
+	window.renderPluginsSidebar = renderPluginsSidebar
+	window.bindSidebar = bindSidebar
 	window.novaDashApp = { navigateTo }
 })()

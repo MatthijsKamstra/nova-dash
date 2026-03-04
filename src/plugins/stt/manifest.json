@@ -1,0 +1,24 @@
+{
+  "id": "stt",
+  "label": "Speech to Text",
+  "icon": "bi-mic-fill",
+  "description": "Record audio and transcribe to text",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Web Speech API",
+      "type": "browser-api",
+      "installed": true,
+      "description": "Browser's native speech recognition (works out of the box)",
+      "instructions": "Supported in all modern browsers. Microphone permission required on first use."
+    },
+    {
+      "name": "Microphone Permission",
+      "type": "permission",
+      "installed": false,
+      "description": "Allow browser to access microphone",
+      "instructions": "Grant microphone permission when prompted by the browser"
+    }
+  ]
+}

@@ -28,46 +28,12 @@
 		<!-- Top nav items -->
 		<div class="nd-sidebar-top d-flex flex-column align-items-center gap-1 flex-grow-1">
 
-			<!-- Logo / home -->
+			<!-- Logo / home (always visible) -->
 			<button class="nd-nav-btn active" data-page="home" title="Home">
 				<i class="bi bi-grid-3x3-gap-fill"></i>
 			</button>
 
-			<div class="nd-sidebar-divider"></div>
-
-			<button class="nd-nav-btn" data-page="chat" title="Ollama Chat">
-				<i class="bi bi-chat-dots-fill"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="image-gen" title="Image Generator">
-				<i class="bi bi-image-fill"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="translator" title="Translator">
-				<i class="bi bi-translate"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="stt" title="Speech to Text">
-				<i class="bi bi-mic-fill"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="job-hunting" title="Job Hunting">
-				<i class="bi bi-briefcase-fill"></i>
-			</button>
-
-			<div class="nd-sidebar-divider"></div>
-
-			<button class="nd-nav-btn" data-page="pomodoro" title="Pomodoro Timer">
-				<i class="bi bi-hourglass-split"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="todo" title="To-Do List">
-				<i class="bi bi-check2-square"></i>
-			</button>
-
-			<button class="nd-nav-btn" data-page="obsidian" title="Obsidian Notes">
-				<i class="bi bi-journal-richtext"></i>
-			</button>
+			<!-- Plugin buttons are rendered here dynamically by renderPluginsSidebar() -->
 
 		</div>
 
@@ -96,6 +62,8 @@
 
 	<!-- Bootstrap JS bundle -->
 	<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+	<!-- Plugin registry -->
+	<script src="plugins.js"></script>
 	<!-- App router -->
 	<script src="app.js"></script>
 </body>

@@ -1,0 +1,17 @@
+{
+  "id": "obsidian",
+  "label": "Obsidian Notes",
+  "icon": "bi-journal-richtext",
+  "description": "Create and manage Markdown files for Obsidian vaults",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Obsidian Vault Path",
+      "type": "config",
+      "installed": false,
+      "description": "You need to configure your Obsidian vault folder path in settings",
+      "instructions": "1. Go to Settings > Obsidian Vault\n2. Enter the path to your Obsidian vault folder\n3. Example: /Users/you/Documents/ObsidianVault"
+    }
+  ]
+}

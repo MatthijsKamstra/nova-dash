@@ -1,0 +1,17 @@
+{
+  "id": "todo",
+  "label": "To-Do List",
+  "icon": "bi-check2-square",
+  "description": "Simple task management with SQLite persistence",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "SQLite Database",
+      "type": "database",
+      "installed": true,
+      "description": "Local SQLite database for persisting todos",
+      "instructions": "No setup required - database is created automatically"
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+<!-- settings.html — Settings page -->
+<div class="nd-page-title">
+	<i class="bi bi-gear-fill"></i> Settings
+</div>
+
+<div class="row g-3" style="max-width:600px;">
+	<div class="col-12">
+		<div class="nd-card">
+			<div class="fw-semibold mb-3">Appearance</div>
+			<div class="d-flex align-items-center justify-content-between">
+				<span>Theme</span>
+				<div class="btn-group btn-group-sm" role="group">
+					<button class="btn btn-outline-secondary" id="theme-light-btn" onclick="setTheme('light')">
+						<i class="bi bi-sun-fill me-1"></i>Light
+					</button>
+					<button class="btn btn-outline-secondary" id="theme-dark-btn" onclick="setTheme('dark')">
+						<i class="bi bi-moon-stars-fill me-1"></i>Dark
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="col-12">
+		<div class="nd-card">
+			<div class="fw-semibold mb-3">
+				<i class="bi bi-puzzle-fill me-2"></i>Plugins & Modules
+			</div>
+			<div id="plugins-list" class="d-flex flex-column gap-2">
+				<!-- Plugins will be rendered here by initPage_settings -->
+			</div>
+			<small class="text-secondary d-block mt-3">
+				<i class="bi bi-info-circle me-1"></i>
+				Disable modules you don't use to keep your sidebar clean. Requires browser restart.
+			</small>
+		</div>
+	</div>
+
+	<div class="col-12">
+		<div class="nd-card">
+			<div class="fw-semibold mb-3">Plugin Requirements</div>
+			<div id="requirements-list" class="small">
+				<!-- Plugin requirements will be listed here -->
+			</div>
+		</div>
+	</div>
+
+	<div class="col-12">
+		<div class="nd-card">
+			<div class="fw-semibold mb-3">Ollama</div>
+			<div class="mb-2">
+				<label class="form-label small">API Base URL</label>
+				<input type="text" class="form-control form-control-sm" id="ollama-url" value="http://localhost:11434"
+					placeholder="http://localhost:11434">
+			</div>
+			<button class="btn btn-sm btn-primary" onclick="saveSettings()">Save</button>
+		</div>
+	</div>
+
+	<div class="col-12">
+		<div class="nd-card">
+			<div class="fw-semibold mb-3">Obsidian Vault</div>
+			<div class="mb-2">
+				<label class="form-label small">Vault folder path</label>
+				<input type="text" class="form-control form-control-sm" id="obsidian-path"
+					placeholder="/Users/you/Documents/MyVault">
+			</div>
+			<button class="btn btn-sm btn-primary" onclick="saveSettings()">Save</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	function setTheme(t) {
+		document.documentElement.setAttribute('data-bs-theme', t)
+		localStorage.setItem('nd-theme', t)
+		document.getElementById('theme-icon') && (document.getElementById('theme-icon').className = t === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill')
+	}
+
+	async function saveSettings() {
+		const url = document.getElementById('ollama-url').value
+		const vault = document.getElementById('obsidian-path').value
+		if (window.novaDash) {
+			window.novaDash.settings.set('ollama_url', url)
+			window.novaDash.settings.set('obsidian_vault', vault)
+		}
+		localStorage.setItem('nd-ollama-url', url)
+		localStorage.setItem('nd-obsidian-vault', vault)
+		alert('Settings saved.')
+	}
+
+	async function togglePlugin(pluginId, enabled) {
+		await setPluginEnabled(pluginId, enabled)
+		// Reload sidebar
+		if (window.renderPluginsSidebar) {
+			await window.renderPluginsSidebar()
+			window.bindSidebar()
+		}
+	}
+
+	window.initPage_settings = async function () {
+		// Load Ollama and Obsidian settings
+		const savedUrl = (window.novaDash ? await window.novaDash.settings.get('ollama_url') : null) || localStorage.getItem('nd-ollama-url') || 'http://localhost:11434'
+		const savedVault = (window.novaDash ? await window.novaDash.settings.get('obsidian_vault') : null) || localStorage.getItem('nd-obsidian-vault') || ''
+		document.getElementById('ollama-url').value = savedUrl
+		document.getElementById('obsidian-path').value = savedVault
+
+		// Render plugins list with requirements
+		const allPlugins = await getAllPlugins()  // ← Use await!
+		
+		if (!allPlugins || allPlugins.length === 0) {
+			document.getElementById('plugins-list').innerHTML = '<p class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>No plugins loaded. Please refresh the page.</p>'
+			return
+		}
+
+		const enabledIds = await getEnabledPluginIds()
+		const platform = window.__platform || 'unknown'
+		const pluginsList = document.getElementById('plugins-list')
+		const requirementsList = document.getElementById('requirements-list')
+
+		pluginsList.innerHTML = ''
+		const allRequirements = []
+
+		allPlugins.forEach(plugin => {
+			// Skip if not available on this platform
+			if (plugin.requiredPlatform && plugin.requiredPlatform !== platform) {
+				return
+			}
+
+			const isEnabled = enabledIds.includes(plugin.id)
+			const div = document.createElement('div')
+			div.className = 'd-flex align-items-center justify-content-between p-3 border rounded mb-2'
+			div.style.backgroundColor = 'var(--bs-body-bg)'
+			div.innerHTML = `
+				<div class="d-flex align-items-center gap-3" style="flex: 1;">
+					<i class="bi ${plugin.icon} fs-5"></i>
+					<div>
+						<div class="fw-semibold">${plugin.label}</div>
+						<small class="text-secondary">${plugin.description || 'No description'}</small>
+					</div>
+				</div>
+				<div class="form-check form-switch m-0">
+					<input class="form-check-input plugin-toggle" type="checkbox" id="plugin-${plugin.id}" 
+						${isEnabled ? 'checked' : ''} 
+						data-plugin-id="${plugin.id}" 
+						style="cursor: pointer; width: 3em; height: 1.5em;">
+				</div>
+			`
+			pluginsList.appendChild(div)
+
+			// Collect requirements
+			if (plugin.requirements && plugin.requirements.length > 0) {
+				plugin.requirements.forEach(req => {
+					allRequirements.push({
+						plugin: plugin.label,
+						requirement: req.name,
+						type: req.type,
+						installed: req.installed,
+						description: req.description,
+						instructions: req.instructions
+					})
+				})
+			}
+
+			// Add event listener
+			const checkbox = div.querySelector('.plugin-toggle')
+			checkbox.addEventListener('change', (e) => {
+				togglePlugin(plugin.id, e.target.checked)
+			})
+		})
+
+		// Render requirements
+		if (allRequirements.length > 0) {
+			requirementsList.innerHTML = '<div class="d-flex flex-column gap-3">' + allRequirements.map(req => `
+				<div class="d-flex align-items-start gap-3 p-2 border-start" style="border-left-width: 3px !important;">
+					<div style="flex-shrink: 0;">
+						<i class="bi bi-${req.installed ? 'check-circle-fill text-success' : 'exclamation-circle-fill text-warning'} fs-5"></i>
+					</div>
+					<div style="flex: 1; min-width: 0;">
+						<div class="fw-semibold text-small">${req.plugin}</div>
+						<div class="small text-secondary mb-1">${req.requirement}</div>
+						<div class="small text-muted">${req.description}</div>
+						${req.instructions ? `<div class="small mt-2 p-2 bg-secondary bg-opacity-10 rounded" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85em;">${escapeHtml(req.instructions)}</div>` : ''}
+					</div>
+				</div>
+			`).join('') + '</div>'
+		} else {
+			requirementsList.innerHTML = '<p class="text-secondary fst-italic"><i class="bi bi-check-circle me-1"></i>All available - no additional setup required!</p>'
+		}
+		
+	}
+
+	function escapeHtml(str) {
+		return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+	}
+</script>

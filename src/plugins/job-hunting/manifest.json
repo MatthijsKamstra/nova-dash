@@ -1,0 +1,18 @@
+{
+  "id": "job-hunting",
+  "label": "Job Hunting",
+  "icon": "bi-briefcase-fill",
+  "description": "Generate motivatiebrief and custom CV from job postings",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Ollama",
+      "type": "service",
+      "installed": false,
+      "url": "https://ollama.ai",
+      "description": "Local Ollama service with a capable language model",
+      "instructions": "1. Install Ollama from https://ollama.ai\n2. Pull a capable model: 'ollama pull mistral' or 'ollama pull openchat'"
+    }
+  ]
+}

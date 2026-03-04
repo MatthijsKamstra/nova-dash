@@ -1,0 +1,24 @@
+{
+  "id": "image-gen",
+  "label": "Image Generator",
+  "icon": "bi-image-fill",
+  "description": "Generate images using a local Ollama model",
+  "enabledByDefault": true,
+  "requiredPlatform": "darwin",
+  "requirements": [
+    {
+      "name": "Ollama",
+      "type": "service",
+      "installed": false,
+      "url": "https://ollama.ai",
+      "description": "Local Ollama service with a vision or image generation model",
+      "instructions": "1. Install Ollama from https://ollama.ai\n2. Pull an image model: 'ollama pull bakllava' (for vision) or check Ollama library for image gen models"
+    },
+    {
+      "name": "macOS Only",
+      "type": "platform",
+      "installed": true,
+      "description": "Currently only supported on macOS"
+    }
+  ]
+}

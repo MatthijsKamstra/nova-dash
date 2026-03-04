@@ -1,0 +1,17 @@
+{
+  "id": "pomodoro",
+  "label": "Pomodoro Timer",
+  "icon": "bi-hourglass-split",
+  "description": "Focus timer with session logging",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Local Storage",
+      "type": "browser-storage",
+      "installed": true,
+      "description": "Browser's local storage for persisting session history",
+      "instructions": "No setup required - works out of the box"
+    }
+  ]
+}

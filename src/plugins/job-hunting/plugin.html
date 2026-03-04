@@ -1,0 +1,99 @@
+<!-- job-hunting.html — Job Hunting Assistant -->
+<div class="nd-page-title">
+	<i class="bi bi-briefcase-fill"></i> Job Hunting Assistant
+</div>
+
+<div class="row g-4">
+
+	<!-- Left column: Input section -->
+	<div class="col-12 col-lg-6">
+
+		<div class="nd-card mb-4">
+			<div class="fw-semibold mb-3">Vacature Omschrijving</div>
+			<textarea class="form-control form-control-sm" id="job-posting" rows="8"
+				placeholder="Plak hier de volledige vacature tekst..."></textarea>
+		</div>
+
+		<div class="nd-card mb-4">
+			<div class="fw-semibold mb-3">Bedrijf Informatie</div>
+			<textarea class="form-control form-control-sm" id="company-description" rows="6"
+				placeholder="Beschrijf het bedrijf, de missie, de cultuur..."></textarea>
+		</div>
+
+		<div class="d-flex gap-2">
+			<button class="btn btn-primary btn-sm flex-grow-1"
+				onclick="window.jobHunting && window.jobHunting.generateCoverLetter()">
+				<i class="bi bi-file-text me-2"></i>Motivatiebrief genereren
+			</button>
+			<button class="btn btn-success btn-sm flex-grow-1"
+				onclick="window.jobHunting && window.jobHunting.generateCV()">
+				<i class="bi bi-document me-2"></i>CV aanpassen
+			</button>
+		</div>
+
+	</div>
+
+	<!-- Right column: Output section -->
+	<div class="col-12 col-lg-6">
+
+		<!-- Cover Letter Output -->
+		<ul class="nav nav-tabs mb-3" role="tablist">
+			<li class="nav-item" role="presentation">
+				<button class="nav-link active" id="cover-letter-tab" data-bs-toggle="tab"
+					data-bs-target="#cover-letter-content" type="button" role="tab">
+					<i class="bi bi-file-text me-2"></i>Motivatiebrief
+				</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="cv-tab" data-bs-toggle="tab" data-bs-target="#cv-content" type="button"
+					role="tab">
+					<i class="bi bi-document me-2"></i>CV
+				</button>
+			</li>
+		</ul>
+
+		<div class="tab-content">
+
+			<!-- Motivatiebrief -->
+			<div class="tab-pane fade show active" id="cover-letter-content" role="tabpanel">
+				<div class="nd-card" style="max-height: 500px; overflow-y: auto;">
+					<div id="cover-letter-output" class="text-secondary fst-italic">
+						Gegenereerde motivatiebrief verschijnt hier...
+					</div>
+				</div>
+				<button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copy-cover-letter-btn"
+					onclick="window.jobHunting && window.jobHunting.copyCoverLetter()" style="display:none;">
+					<i class="bi bi-clipboard me-1"></i>Kopieer naar klembord
+				</button>
+			</div>
+
+			<!-- CV -->
+			<div class="tab-pane fade" id="cv-content" role="tabpanel">
+				<div class="nd-card" style="max-height: 500px; overflow-y: auto;">
+					<div id="cv-output" class="text-secondary fst-italic">
+						Aangepaste CV verschijnt hier...
+					</div>
+				</div>
+				<button class="btn btn-sm btn-outline-secondary mt-2 w-100" id="copy-cv-btn"
+					onclick="window.jobHunting && window.jobHunting.copyCV()" style="display:none;">
+					<i class="bi bi-clipboard me-1"></i>Kopieer naar klembord
+				</button>
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+<!-- Info box -->
+<div class="alert alert-info mt-4 mb-0">
+	<i class="bi bi-info-circle me-2"></i>
+	<strong>Tips:</strong>
+	<ul class="mb-0 mt-2 small">
+		<li>Zorg dat je vacature regelrecht uit de job-posting is gekopieerd</li>
+		<li>Voeg bedrijfsinformatie toe voor een meer gerichte brieven CV</li>
+		<li>Je gegevens worden <strong>niet</strong> opgeslagen — alles wordt lokaal verwerkt</li>
+		<li>Bewerk het gegenereerde resultaat gerust — dit is een startpunt!</li>
+	</ul>
+</div>

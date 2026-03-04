@@ -1,0 +1,18 @@
+{
+  "id": "chat",
+  "label": "Ollama Chat",
+  "icon": "bi-chat-dots-fill",
+  "description": "Chat with a local language model powered by Ollama",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Ollama",
+      "type": "service",
+      "installed": false,
+      "url": "https://ollama.ai",
+      "description": "Local Ollama service must be running on http://localhost:11434",
+      "instructions": "1. Download and install Ollama from https://ollama.ai\n2. Run 'ollama serve' in terminal\n3. In another terminal, pull a model: 'ollama pull mistral' or 'ollama pull neural-chat'"
+    }
+  ]
+}
