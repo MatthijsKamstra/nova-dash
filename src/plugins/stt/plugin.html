@@ -1,8 +1,474 @@
-<!-- stt.html — Speech-to-Text placeholder -->
-<div class="nd-placeholder h-100">
-	<i class="bi bi-mic-fill text-warning"></i>
-	<h2>Speech to Text</h2>
-	<p>Record audio from your microphone and transcribe it to text. Uses the Web Speech API in the browser, or Whisper
-		via Ollama in the desktop app.</p>
-	<span class="badge bg-secondary">Coming soon</span>
+<!-- stt.html — Speech-to-Text with Transformers.js Whisper -->
+<div class="container-fluid h-100 overflow-auto">
+
+	<!-- Model Loading Status -->
+	<div class="alert alert-info mb-3" id="model-status-alert" style="display: none;">
+		<div class="d-flex align-items-center">
+			<div class="spinner-border spinner-border-sm me-2" role="status">
+				<span class="visually-hidden">Loading...</span>
+			</div>
+			<span>Whisper model aan het laden... Dit kan even duren bij eerste keer.</span>
+		</div>
+		<div class="progress mt-2">
+			<div class="progress-bar progress-bar-striped progress-bar-animated" id="load-progress" style="width: 0%">
+			</div>
+		</div>
+		<small class="text-muted mt-2 d-block" id="load-status">Voorbereiding...</small>
+	</div>
+
+	<!-- Recording Card -->
+	<div class="card mb-3">
+		<div class="card-header bg-primary-subtle">
+			<i class="bi bi-mic-fill me-1"></i> Spraak Opnemen
+		</div>
+		<div class="card-body text-center py-5">
+			<div id="recording-indicator" style="display: none;" class="mb-3">
+				<div class="spinner-border text-danger me-2" role="status">
+					<span class="visually-hidden">Recording...</span>
+				</div>
+				<span class="text-danger fw-bold">Opname bezig...</span>
+				<div id="recording-time" class="text-muted mt-2">00:00</div>
+			</div>
+
+			<div id="ready-state">
+				<p class="text-muted mb-3">Klik op de microfoon en spreek. De opname wordt automatisch naar Whisper
+					gestuurd.</p>
+				<button class="btn btn-lg btn-danger" id="record-btn">
+					<i class="bi bi-mic-fill"></i> Start Opnemen
+				</button>
+			</div>
+
+			<div id="processing-state" style="display: none;" class="py-4">
+				<div class="spinner-border text-primary mb-3" role="status">
+					<span class="visually-hidden">Processing...</span>
+				</div>
+				<p class="text-muted">Whisper verwerkt je spraak...</p>
+			</div>
+
+			<div id="stop-state" style="display: none;">
+				<button class="btn btn-lg btn-secondary" id="stop-btn">
+					<i class="bi bi-stop-circle-fill"></i> Stop
+				</button>
+				<div id="recording-duration" class="text-muted mt-2"></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Settings -->
+	<div class="card mb-3">
+		<div class="card-header">
+			<i class="bi bi-gear-fill me-1"></i> Instellingen
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-6 mb-3">
+					<label for="whisper-model" class="form-label">Whisper Model</label>
+					<select class="form-select" id="whisper-model">
+						<option value="tiny" selected>tiny (30MB) - Snel</option>
+						<option value="base">base (140MB) - Beter</option>
+						<option value="small">small (500MB) - Goed</option>
+						<option value="medium">medium (1.4GB) - Beste</option>
+					</select>
+					<small class="text-muted">Grotere modellen zijn preciezer maar langzamer</small>
+				</div>
+				<div class="col-md-6 mb-3">
+					<label for="language-select" class="form-label">Taal</label>
+					<select class="form-select" id="language-select">
+						<option value="">Auto-detect</option>
+						<option value="nl">Nederlands</option>
+						<option value="en">English</option>
+						<option value="es">Español</option>
+						<option value="fr">Français</option>
+						<option value="de">Deutsch</option>
+						<option value="it">Italiano</option>
+						<option value="pt">Português</option>
+						<option value="ru">Русский</option>
+						<option value="zh">中文</option>
+						<option value="ja">日本語</option>
+					</select>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Transcript -->
+	<div class="card mb-3" id="transcript-card" style="display: none;">
+		<div class="card-header bg-success-subtle">
+			<i class="bi bi-chat-left-text me-1"></i> Transcriptie
+			<button class="btn btn-sm btn-outline-secondary float-end" id="copy-transcript-btn">
+				<i class="bi bi-clipboard"></i> Kopieer
+			</button>
+		</div>
+		<div class="card-body">
+			<pre id="transcript-text" class="mb-0"
+				style="white-space: pre-wrap; font-family: inherit; min-height: 80px;"></pre>
+			<div class="mt-3 d-flex gap-2 flex-wrap">
+				<button class="btn btn-sm btn-outline-primary" id="new-recording-btn">
+					<i class="bi bi-mic-fill"></i> Nieuwe Opneme
+				</button>
+				<button class="btn btn-sm btn-outline-success" id="use-transcript-btn">
+					<i class="bi bi-check-circle"></i> Gebruik Dit
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- History -->
+	<div class="card">
+		<div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#history-section">
+			<i class="bi bi-clock-history me-1"></i> Geschiedenis
+			<i class="bi bi-chevron-down float-end"></i>
+		</div>
+		<div class="collapse" id="history-section">
+			<div class="card-body">
+				<div id="history-list" class="list-group">
+					<div class="list-group-item text-muted text-center py-3">
+						<small>Geen opnames nog</small>
+					</div>
+				</div>
+				<button class="btn btn-sm btn-outline-secondary mt-3" id="clear-history-btn" style="display: none;">
+					<i class="bi bi-trash"></i> Wis Geschiedenis
+				</button>
+			</div>
+		</div>
+	</div>
 </div>
+
+<style>
+	#recording-indicator {
+		animation: pulse 1s infinite;
+	}
+
+	@keyframes pulse {
+
+		0%,
+		100% {
+			opacity: 1;
+		}
+
+		50% {
+			opacity: 0.7;
+		}
+	}
+
+	.transcript-history-item {
+		cursor: pointer;
+		transition: background-color 0.2s;
+	}
+
+	.transcript-history-item:hover {
+		background-color: var(--bs-light);
+	}
+
+	.transcript-history-item.active {
+		background-color: var(--bs-primary-bg-subtle);
+		border-color: var(--bs-primary);
+	}
+</style>
+
+<script type="module">
+	import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.5';
+
+	// Allow remote models
+	env.allowRemoteModels = true;
+	env.allowLocalModels = false;
+
+	let mediaRecorder = null;
+	let audioChunks = [];
+	let isRecording = false;
+	let recordingStartTime = 0;
+	let recordingInterval = null;
+	let history = [];
+	let whisperPipeline = null;
+	let currentModelSize = 'tiny';
+
+	// Elements
+	const recordBtn = document.getElementById('record-btn');
+	const stopBtn = document.getElementById('stop-btn');
+	const recordingIndicator = document.getElementById('recording-indicator');
+	const readyState = document.getElementById('ready-state');
+	const stopState = document.getElementById('stop-state');
+	const processingState = document.getElementById('processing-state');
+	const transcriptCard = document.getElementById('transcript-card');
+	const transcriptText = document.getElementById('transcript-text');
+	const copyBtn = document.getElementById('copy-transcript-btn');
+	const newRecordingBtn = document.getElementById('new-recording-btn');
+	const useTranscriptBtn = document.getElementById('use-transcript-btn');
+	const modelStatusAlert = document.getElementById('model-status-alert');
+	const loadProgress = document.getElementById('load-progress');
+	const loadStatus = document.getElementById('load-status');
+	const whisperModelSelect = document.getElementById('whisper-model');
+	const languageSelect = document.getElementById('language-select');
+	const historyList = document.getElementById('history-list');
+	const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+	// Initialize
+	async function init() {
+		loadHistory();
+		setupEventListeners();
+		await loadWhisperModel();
+	}
+
+	function setupEventListeners() {
+		recordBtn.addEventListener('click', startRecording);
+		stopBtn.addEventListener('click', stopRecording);
+		copyBtn.addEventListener('click', copyTranscript);
+		newRecordingBtn.addEventListener('click', resetForNewRecording);
+		useTranscriptBtn.addEventListener('click', useTranscript);
+		clearHistoryBtn.addEventListener('click', clearHistory);
+		whisperModelSelect.addEventListener('change', (e) => {
+			currentModelSize = e.target.value;
+			loadWhisperModel();
+		});
+	}
+
+	// Load Whisper model
+	async function loadWhisperModel() {
+		try {
+			modelStatusAlert.style.display = 'block';
+			recordBtn.disabled = true;
+			loadStatus.textContent = `Whisper-${currentModelSize} model laden...`;
+
+			const modelName = `Xenova/whisper-${currentModelSize}`;
+
+			whisperPipeline = await pipeline('automatic-speech-recognition', modelName, {
+				quantized: true,
+				progress_callback: (progress) => {
+					if (progress.status === 'progress') {
+						const percent = Math.round((progress.loaded / progress.total) * 100);
+						loadProgress.style.width = percent + '%';
+						loadStatus.textContent = `Download: ${percent}%`;
+					} else if (progress.status === 'ready') {
+						loadStatus.textContent = 'Model gereed!';
+					}
+				}
+			});
+
+			modelStatusAlert.style.display = 'none';
+			recordBtn.disabled = false;
+			console.log('Whisper model loaded successfully');
+		} catch (error) {
+			console.error('Error loading Whisper model:', error);
+			loadStatus.textContent = `❌ Fout bij laden: ${error.message}`;
+			recordBtn.disabled = true;
+		}
+	}
+
+	// Recording
+	async function startRecording() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaRecorder = new MediaRecorder(stream);
+			audioChunks = [];
+			isRecording = true;
+			recordingStartTime = Date.now();
+
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunks.push(event.data);
+			};
+
+			mediaRecorder.start();
+			updateRecordingUI();
+			startRecordingTimer();
+		} catch (error) {
+			console.error('Microphone error:', error);
+			alert('Microfoon-toegang geweigerd of niet beschikbaar.');
+		}
+	}
+
+	function stopRecording() {
+		if (mediaRecorder && isRecording) {
+			mediaRecorder.stop();
+			isRecording = false;
+			clearInterval(recordingInterval);
+
+			mediaRecorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+				await transcribeAudio(audioBlob);
+			};
+		}
+	}
+
+	function updateRecordingUI() {
+		if (isRecording) {
+			readyState.style.display = 'none';
+			recordingIndicator.style.display = 'block';
+			stopState.style.display = 'block';
+			recordBtn.style.display = 'none';
+		} else {
+			recordingIndicator.style.display = 'none';
+			stopState.style.display = 'none';
+			recordBtn.style.display = 'block';
+			readyState.style.display = 'block';
+		}
+	}
+
+	function startRecordingTimer() {
+		recordingInterval = setInterval(() => {
+			const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+			const minutes = Math.floor(elapsed / 60);
+			const seconds = elapsed % 60;
+			document.getElementById('recording-time').textContent =
+				`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+			document.getElementById('recording-duration').textContent =
+				`Duur: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+		}, 1000);
+	}
+
+	// Transcribe with Whisper
+	async function transcribeAudio(audioBlob) {
+		updateRecordingUI();
+		processingState.style.display = 'block';
+		recordBtn.disabled = true;
+
+		try {
+			// Decode audio blob
+			const arrayBuffer = await audioBlob.arrayBuffer();
+			const audioContext = new AudioContext();
+			const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+			// Resample to 16kHz mono (Whisper requirement)
+			const offlineContext = new OfflineAudioContext(1, audioBuffer.duration * 16000, 16000);
+			const source = offlineContext.createBufferSource();
+			source.buffer = audioBuffer;
+			source.connect(offlineContext.destination);
+			source.start();
+
+			const resampledBuffer = await offlineContext.startRendering();
+			const pcm = resampledBuffer.getChannelData(0);
+
+			// Call Whisper
+			const result = await whisperPipeline(pcm, {
+				language: languageSelect.value || undefined,
+				task: 'transcribe'
+			});
+
+			const transcript = result.text.trim();
+
+			// Save to history
+			addToHistory(transcript);
+
+			// Show transcript
+			showTranscript(transcript);
+			processingState.style.display = 'none';
+			recordBtn.disabled = false;
+		} catch (error) {
+			console.error('Transcription error:', error);
+			processingState.style.display = 'none';
+			transcriptText.textContent = `❌ Transcriptie fout: ${error.message}`;
+			transcriptCard.style.display = 'block';
+			recordBtn.disabled = false;
+		}
+	}
+
+	function showTranscript(text) {
+		transcriptText.textContent = text;
+		transcriptCard.style.display = 'block';
+		processingState.style.display = 'none';
+	}
+
+	function copyTranscript() {
+		const text = transcriptText.textContent;
+		navigator.clipboard.writeText(text).then(() => {
+			copyBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Gekopieerd!';
+			setTimeout(() => {
+				copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Kopieer';
+			}, 2000);
+		});
+	}
+
+	function resetForNewRecording() {
+		transcriptText.textContent = '';
+		transcriptCard.style.display = 'none';
+		readyState.style.display = 'block';
+		recordBtn.disabled = false;
+	}
+
+	function useTranscript() {
+		// Send to parent if in iframe
+		const text = transcriptText.textContent;
+		if (window.parent && window.parent !== window) {
+			window.parent.postMessage({ type: 'stt-transcript', text: text }, '*');
+		}
+		console.log('Transcript ready:', text);
+	}
+
+	// History management
+	function addToHistory(text) {
+		const item = {
+			id: Date.now(),
+			text: text,
+			timestamp: new Date().toLocaleString('nl-NL')
+		};
+		history.unshift(item);
+		if (history.length > 20) history.pop();
+		saveHistory();
+		updateHistoryUI();
+	}
+
+	function saveHistory() {
+		localStorage.setItem('nova_stt_history', JSON.stringify(history));
+	}
+
+	function loadHistory() {
+		const saved = localStorage.getItem('nova_stt_history');
+		if (saved) {
+			try {
+				history = JSON.parse(saved);
+				updateHistoryUI();
+			} catch (err) {
+				console.error('Failed to load history:', err);
+			}
+		}
+	}
+
+	function updateHistoryUI() {
+		if (history.length === 0) {
+			historyList.innerHTML = '<div class="list-group-item text-muted text-center py-3"><small>Geen opnames nog</small></div>';
+			clearHistoryBtn.style.display = 'none';
+		} else {
+			historyList.innerHTML = history.map(item => `
+				<button class="list-group-item list-group-item-action transcript-history-item text-start" data-id="${item.id}">
+					<div class="d-flex justify-content-between align-items-start">
+						<div class="flex-grow-1">
+							<p class="mb-1">${escapeHtml(item.text).substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
+							<small class="text-muted">${item.timestamp}</small>
+						</div>
+						<i class="bi bi-chevron-right text-muted"></i>
+					</div>
+				</button>
+			`).join('');
+			clearHistoryBtn.style.display = 'block';
+
+			// Add click handlers
+			historyList.querySelectorAll('.transcript-history-item').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const id = parseInt(btn.dataset.id);
+					const item = history.find(h => h.id === id);
+					if (item) {
+						transcriptText.textContent = item.text;
+						transcriptCard.style.display = 'block';
+					}
+				});
+			});
+		}
+	}
+
+	function clearHistory() {
+		if (confirm('Wis alle transcripties?')) {
+			history = [];
+			saveHistory();
+			updateHistoryUI();
+			transcriptCard.style.display = 'none';
+		}
+	}
+
+	function escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
+
+	// Initialize
+	init();
+</script>

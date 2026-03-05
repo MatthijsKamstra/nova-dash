@@ -1,0 +1,842 @@
+<!-- quick-reply.html — Smart Response Generator -->
+<div class="container-fluid h-100 overflow-auto">
+
+	<!-- Model Selector -->
+	<div id="quick-reply-model-selector"></div>
+
+	<!-- Context Selector -->
+	<div class="card mb-3">
+		<div class="card-body">
+			<label class="form-label fw-bold">
+				<i class="bi bi-tags-fill me-1"></i> Context / Bron
+			</label>
+			<div class="d-flex flex-wrap gap-2 mb-2">
+				<button class="btn btn-sm btn-outline-primary context-btn active" data-context="general">
+					<i class="bi bi-chat-left-text"></i> Algemeen
+				</button>
+				<button class="btn btn-sm btn-outline-primary context-btn" data-context="linkedin-recruiter">
+					<i class="bi bi-linkedin"></i> LinkedIn Recruiter
+				</button>
+				<button class="btn btn-sm btn-outline-primary context-btn" data-context="linkedin-post">
+					<i class="bi bi-linkedin"></i> LinkedIn Post
+				</button>
+				<button class="btn btn-sm btn-outline-primary context-btn" data-context="whatsapp">
+					<i class="bi bi-whatsapp"></i> WhatsApp
+				</button>
+				<button class="btn btn-sm btn-outline-primary context-btn" data-context="email">
+					<i class="bi bi-envelope"></i> Email
+				</button>
+				<button class="btn btn-sm btn-outline-primary context-btn" data-context="twitter">
+					<i class="bi bi-twitter-x"></i> Twitter/X
+				</button>
+			</div>
+			<small class="text-muted">
+				<i class="bi bi-info-circle"></i>
+				Selecteer de bron van de tekst voor betere context
+			</small>
+		</div>
+	</div>
+
+	<!-- Input Section -->
+	<div class="row g-3 mb-3">
+		<!-- Original Text -->
+		<div class="col-md-6">
+			<div class="card h-100">
+				<div class="card-header bg-primary-subtle">
+					<i class="bi bi-clipboard-fill me-1"></i> Gekopieerde Tekst
+					<button class="btn btn-sm btn-outline-secondary float-end me-1" id="paste-btn"
+						title="Plak van clipboard">
+						<i class="bi bi-clipboard-check"></i> Plak
+					</button>
+					<button class="btn btn-sm btn-outline-info float-end" id="summarize-btn" title="Samenvatten met AI"
+						disabled>
+						<i class="bi bi-chat-square-quote-fill"></i> Samenvatten
+					</button>
+				</div>
+				<div class="card-body">
+					<textarea class="form-control" id="original-text" rows="8"
+						placeholder="Plak hier de tekst waarop je wilt reageren (bijv. recruiter bericht, LinkedIn post, WhatsApp bericht, etc.)"></textarea>
+					<div class="mt-2">
+						<small class="text-muted">
+							<i class="bi bi-lightbulb"></i>
+							<span id="char-count-original">0</span> karakters
+						</small>
+					</div>
+					<div id="summary-indicator" class="alert alert-info mt-2" style="display: none;">
+						<div class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Summarizing...</span>
+						</div>
+						<span class="fw-bold">AI maakt samenvatting...</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- User Instructions -->
+		<div class="col-md-6">
+			<div class="card h-100">
+				<div class="card-header bg-info-subtle">
+					<i class="bi bi-chat-square-quote-fill me-1"></i> Jouw Instructies
+					<button class="btn btn-sm btn-outline-secondary float-end" id="voice-btn"
+						title="Spreek je instructies in">
+						<i class="bi bi-mic-fill"></i>
+					</button>
+				</div>
+				<div class="card-body">
+					<textarea class="form-control" id="user-instructions" rows="8" placeholder="Geef hier instructies, bijv.:
+- 'Dit is niet een match, maar ik ben open voor frontend developer rollen'
+- 'Reageer inhoudelijk en professioneel op deze LinkedIn post'
+- 'Zeg beleefd nee, maar houd de deur open'
+- 'Reageer enthousiast maar kort'"></textarea>
+					<div class="mt-2">
+						<small class="text-muted">
+							<i class="bi bi-lightbulb"></i>
+							<span id="char-count-instructions">0</span> karakters
+						</small>
+					</div>
+					<div id="voice-recording-indicator" class="alert alert-info mt-2" style="display: none;">
+						<div class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Recording...</span>
+						</div>
+						<span class="fw-bold">Luistert naar je stem...</span>
+						<div id="voice-time" class="text-muted small mt-1">00:00</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quick Templates -->
+	<div class="card mb-3">
+		<div class="card-header">
+			<i class="bi bi-lightning-fill me-1"></i> Snelle Templates
+		</div>
+		<div class="card-body">
+			<div class="d-flex flex-wrap gap-2">
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="no-thanks">
+					❌ Beleefd Afwijzen
+				</button>
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="interested">
+					✅ Interesse Tonen
+				</button>
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="more-info">
+					📋 Meer Info Vragen
+				</button>
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="not-match-but-open">
+					🔄 Niet Match, Wel Open
+				</button>
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="professional-comment">
+					💼 Professionele Reactie
+				</button>
+				<button class="btn btn-sm btn-outline-secondary template-btn" data-template="casual-friendly">
+					😊 Casual & Vriendelijk
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Generate Button -->
+	<div class="d-flex gap-2 mb-3">
+		<button class="btn btn-lg btn-primary" id="generate-reply-btn" disabled>
+			<i class="bi bi-magic"></i> Genereer Antwoord
+		</button>
+		<button class="btn btn-lg btn-outline-secondary" id="clear-all-btn">
+			<i class="bi bi-x-circle"></i> Wis Alles
+		</button>
+		<div class="form-check form-switch ms-auto d-flex align-items-center">
+			<input class="form-check-input" type="checkbox" id="use-profile-check" checked>
+			<label class="form-check-label ms-2" for="use-profile-check">
+				Gebruik CV/Profiel
+			</label>
+		</div>
+	</div>
+
+	<!-- Generated Response -->
+	<div class="card mb-3" id="response-card" style="display: none;">
+		<div class="card-header bg-success-subtle">
+			<i class="bi bi-check-circle-fill me-1"></i> Gegenereerd Antwoord
+			<button class="btn btn-sm btn-outline-secondary float-end me-1" id="copy-reply-btn">
+				<i class="bi bi-clipboard"></i> Kopieer
+			</button>
+			<button class="btn btn-sm btn-outline-warning float-end" id="rewrite-reply-btn"
+				title="Herschrijf met ander perspectief">
+				<i class="bi bi-arrow-repeat"></i> Herschrijf
+			</button>
+		</div>
+		<div class="card-body">
+			<div id="response-loading" style="display: none;" class="text-center py-4">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Genereren...</span>
+				</div>
+				<p class="mt-2 text-muted">AI genereert je antwoord...</p>
+			</div>
+			<div id="rewrite-loading" style="display: none;" class="text-center py-4">
+				<div class="spinner-border text-primary" role="status">
+					<span class="visually-hidden">Rewriting...</span>
+				</div>
+				<p class="mt-2 text-muted">AI herschrijft je antwoord...</p>
+			</div>
+			<div id="response-content">
+				<div class="bg-body-secondary p-3 rounded mb-2">
+					<pre id="generated-response" class="mb-0"
+						style="white-space: pre-wrap; font-family: inherit;"></pre>
+				</div>
+				<div class="d-flex justify-content-between align-items-center">
+					<small class="text-muted">
+						<i class="bi bi-info-circle"></i>
+						<span id="char-count-response">0</span> karakters
+					</small>
+					<button class="btn btn-sm btn-outline-primary" id="regenerate-btn">
+						<i class="bi bi-arrow-clockwise"></i> Opnieuw Genereren
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Profile Settings -->
+	<div class="card">
+		<div class="card-header" role="button" data-bs-toggle="collapse" data-bs-target="#profile-settings">
+			<i class="bi bi-person-badge-fill me-1"></i> CV / Profiel Informatie
+			<i class="bi bi-chevron-down float-end"></i>
+		</div>
+		<div class="collapse" id="profile-settings">
+			<div class="card-body">
+				<div class="alert alert-info">
+					<i class="bi bi-info-circle"></i>
+					Deze informatie wordt gebruikt om antwoorden te personaliseren.
+					Vul in wat relevant is voor jouw situatie.
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-name" class="form-label">Naam</label>
+					<input type="text" class="form-control" id="profile-name" placeholder="Bijv. Matthijs Kamstra">
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-title" class="form-label">Huidige Functie / Titel</label>
+					<input type="text" class="form-control" id="profile-title"
+						placeholder="Bijv. Senior Frontend Developer">
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-skills" class="form-label">Belangrijkste Vaardigheden</label>
+					<textarea class="form-control" id="profile-skills" rows="3"
+						placeholder="Bijv: JavaScript, TypeScript, React, Node.js, Electron, etc."></textarea>
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-experience" class="form-label">Ervaring (jaren & focus)</label>
+					<textarea class="form-control" id="profile-experience" rows="2"
+						placeholder="Bijv: 10+ jaar frontend development, focus op desktop apps met Electron"></textarea>
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-interests" class="form-label">Interesses / Voorkeuren</label>
+					<textarea class="form-control" id="profile-interests" rows="3"
+						placeholder="Bijv: Open voor remote work, interesse in AI/ML projecten, voorkeur voor startup omgeving"></textarea>
+				</div>
+
+				<div class="mb-3">
+					<label for="profile-location" class="form-label">Locatie</label>
+					<input type="text" class="form-control" id="profile-location"
+						placeholder="Bijv. Amsterdam, Nederland">
+				</div>
+
+				<button class="btn btn-primary" id="save-profile-btn">
+					<i class="bi bi-save"></i> Bewaar Profiel
+				</button>
+				<small class="text-success ms-2" id="profile-saved-msg" style="display: none;">
+					<i class="bi bi-check-circle-fill"></i> Opgeslagen!
+				</small>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.context-btn.active {
+		background-color: var(--bs-primary);
+		color: white;
+		border-color: var(--bs-primary);
+	}
+
+	.template-btn:hover {
+		transform: translateY(-2px);
+		transition: transform 0.2s;
+	}
+
+	#generated-response {
+		min-height: 100px;
+	}
+
+	.card-header[role="button"]:hover {
+		background-color: var(--bs-secondary-bg);
+		cursor: pointer;
+	}
+</style>
+
+<script>
+	(function () {
+		let currentModel = null;
+		let currentContext = 'general';
+		let isGenerating = false;
+		let voiceRecorder = null;
+		let voiceChunks = [];
+		let isVoiceRecording = false;
+		let voiceStartTime = 0;
+		let voiceInterval = null;
+
+		// Elements
+		const originalText = document.getElementById('original-text');
+		const userInstructions = document.getElementById('user-instructions');
+		const generateBtn = document.getElementById('generate-reply-btn');
+		const clearAllBtn = document.getElementById('clear-all-btn');
+		const pasteBtn = document.getElementById('paste-btn');
+		const copyReplyBtn = document.getElementById('copy-reply-btn');
+		const regenerateBtn = document.getElementById('regenerate-btn');
+		const useProfileCheck = document.getElementById('use-profile-check');
+		const responseCard = document.getElementById('response-card');
+		const responseLoading = document.getElementById('response-loading');
+		const responseContent = document.getElementById('response-content');
+		const generatedResponse = document.getElementById('generated-response');
+		const summarizeBtn = document.getElementById('summarize-btn');
+		const rewriteBtn = document.getElementById('rewrite-reply-btn');
+		const rewriteLoading = document.getElementById('rewrite-loading');
+
+		// Profile fields
+		const profileName = document.getElementById('profile-name');
+		const profileTitle = document.getElementById('profile-title');
+		const profileSkills = document.getElementById('profile-skills');
+		const profileExperience = document.getElementById('profile-experience');
+		const profileInterests = document.getElementById('profile-interests');
+		const profileLocation = document.getElementById('profile-location');
+		const saveProfileBtn = document.getElementById('save-profile-btn');
+		const profileSavedMsg = document.getElementById('profile-saved-msg');
+
+		// Context templates
+		const templates = {
+			'no-thanks': 'Bedank beleefd maar geef aan dat dit geen match is. Houd de deur wel open voor toekomstige mogelijkheden.',
+			'interested': 'Toon interesse en vraag om meer details over de rol en het bedrijf.',
+			'more-info': 'Vraag om meer informatie voordat je een beslissing neemt.',
+			'not-match-but-open': 'Geef aan dat deze specifieke rol niet past, maar dat je wel open staat voor andere mogelijkheden die beter bij je profiel passen.',
+			'professional-comment': 'Reageer professioneel en inhoudelijk op de post of het bericht.',
+			'casual-friendly': 'Reageer op een vriendelijke en toegankelijke manier.'
+		};
+
+		// Initialize
+		async function init() {
+			await window.ModelSelector.createModelSelector({
+				containerId: 'quick-reply-model-selector',
+				category: 'chat',
+				settingKey: 'quick_reply_preferred_model',
+				defaultModel: 'llama3.2:latest',
+				onChange: (model) => {
+					currentModel = model;
+					updateButtons();
+				}
+			});
+
+			loadProfile();
+			setupEventListeners();
+			updateCharCounts();
+		}
+
+		// Event listeners
+		function setupEventListeners() {
+			// Context buttons
+			document.querySelectorAll('.context-btn').forEach(btn => {
+				btn.addEventListener('click', () => {
+					document.querySelectorAll('.context-btn').forEach(b => b.classList.remove('active'));
+					btn.classList.add('active');
+					currentContext = btn.dataset.context;
+				});
+			});
+
+			// Template buttons
+			document.querySelectorAll('.template-btn').forEach(btn => {
+				btn.addEventListener('click', () => {
+					const template = templates[btn.dataset.template];
+					userInstructions.value = template;
+					updateCharCounts();
+					updateButtons();
+				});
+			});
+
+			// Paste button
+			pasteBtn.addEventListener('click', async () => {
+				try {
+					const text = await navigator.clipboard.readText();
+					originalText.value = text;
+					updateCharCounts();
+					updateButtons();
+					autoDetectContext(text);
+				} catch (err) {
+					console.error('Failed to read clipboard:', err);
+					alert('Kon niet van clipboard plakken. Gebruik Ctrl/Cmd+V.');
+				}
+			});
+
+			// Voice button
+			document.getElementById('voice-btn').addEventListener('click', startVoiceRecording);
+
+			// Text inputs
+			originalText.addEventListener('input', () => {
+				updateCharCounts();
+				updateButtons();
+			});
+
+			userInstructions.addEventListener('input', () => {
+				updateCharCounts();
+				updateButtons();
+			});
+
+			// Generate button
+			generateBtn.addEventListener('click', generateReply);
+			regenerateBtn.addEventListener('click', generateReply);
+
+			// Summarize button
+			summarizeBtn.addEventListener('click', summarizeOriginalText);
+
+			// Rewrite button
+			rewriteBtn.addEventListener('click', rewriteReply);
+
+			// Clear all
+			clearAllBtn.addEventListener('click', () => {
+				originalText.value = '';
+				userInstructions.value = '';
+				generatedResponse.textContent = '';
+				responseCard.style.display = 'none';
+				updateCharCounts();
+				updateButtons();
+			});
+
+			// Copy reply
+			copyReplyBtn.addEventListener('click', async () => {
+				try {
+					await navigator.clipboard.writeText(generatedResponse.textContent);
+					copyReplyBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Gekopieerd!';
+					setTimeout(() => {
+						copyReplyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Kopieer';
+					}, 2000);
+				} catch (err) {
+					console.error('Failed to copy:', err);
+				}
+			});
+
+			// Profile save
+			saveProfileBtn.addEventListener('click', saveProfile);
+		}
+
+		// Auto-detect context from text
+		function autoDetectContext(text) {
+			const lower = text.toLowerCase();
+
+			if (lower.includes('linkedin') || lower.includes('recruiter') || lower.includes('vacancy') || lower.includes('vacature')) {
+				selectContext('linkedin-recruiter');
+			} else if (lower.includes('whatsapp') || text.includes('📱') || text.includes('💬')) {
+				selectContext('whatsapp');
+			} else if (lower.includes('email') || lower.includes('subject:') || lower.includes('from:')) {
+				selectContext('email');
+			}
+		}
+
+		function selectContext(context) {
+			document.querySelectorAll('.context-btn').forEach(b => b.classList.remove('active'));
+			const btn = document.querySelector(`[data-context="${context}"]`);
+			if (btn) {
+				btn.classList.add('active');
+				currentContext = context;
+			}
+		}
+
+		// Update character counts
+		function updateCharCounts() {
+			document.getElementById('char-count-original').textContent = originalText.value.length;
+			document.getElementById('char-count-instructions').textContent = userInstructions.value.length;
+			if (generatedResponse.textContent) {
+				document.getElementById('char-count-response').textContent = generatedResponse.textContent.length;
+			}
+		}
+
+		// Update button states
+		function updateButtons() {
+			const hasText = originalText.value.trim().length > 0;
+			const hasModel = currentModel !== null;
+			generateBtn.disabled = !hasText || !hasModel || isGenerating;
+			summarizeBtn.disabled = !hasText || !currentModel;
+			rewriteBtn.disabled = !generatedResponse.textContent || isGenerating;
+		}
+
+		// Generate reply using Ollama
+		async function generateReply() {
+			if (!currentModel || !originalText.value.trim()) return;
+
+			isGenerating = true;
+			updateButtons();
+
+			responseCard.style.display = 'block';
+			responseLoading.style.display = 'block';
+			responseContent.style.display = 'none';
+			generatedResponse.textContent = '';
+
+			try {
+				// Build prompt
+				let prompt = buildPrompt();
+
+				// Call Ollama
+				const response = await fetch('http://localhost:11434/api/generate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						model: currentModel,
+						prompt: prompt,
+						stream: false
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error(`Ollama error: ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				generatedResponse.textContent = data.response.trim();
+				updateCharCounts();
+
+				responseLoading.style.display = 'none';
+				responseContent.style.display = 'block';
+
+			} catch (error) {
+				console.error('Error generating reply:', error);
+				generatedResponse.textContent = `❌ Error: ${error.message}\n\nZorg dat Ollama draait (http://localhost:11434)`;
+				responseLoading.style.display = 'none';
+				responseContent.style.display = 'block';
+			} finally {
+				isGenerating = false;
+				updateButtons();
+			}
+		}
+
+		// Summarize original text using Ollama
+		async function summarizeOriginalText() {
+			if (!currentModel || !originalText.value.trim()) return;
+
+			const summaryIndicator = document.getElementById('summary-indicator');
+			summaryIndicator.style.display = 'block';
+			summarizeBtn.disabled = true;
+
+			try {
+				const response = await fetch('http://localhost:11434/api/generate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						model: currentModel,
+						prompt: `Maak een korte, bondige samenvatting van de volgende tekst. Houd het op max 2-3 zinnen. Geef ALLEEN de samenvatting, geen extra commentaar.\n\nTekst:\n${originalText.value.trim()}`,
+						stream: false
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error(`Ollama error: ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				const summary = data.response.trim();
+
+				// Create alert with summary
+				const alertDiv = document.createElement('div');
+				alertDiv.className = 'alert alert-success';
+				alertDiv.innerHTML = `
+					<strong><i class="bi bi-chat-square-quote-fill"></i> Samenvatting:</strong><br>
+					${escapeHtml(summary)}
+				`;
+
+				summaryIndicator.replaceWith(alertDiv);
+				summaryIndicator = alertDiv;
+
+			} catch (error) {
+				console.error('Error summarizing:', error);
+				summaryIndicator.className = 'alert alert-danger mt-2';
+				summaryIndicator.innerHTML = `<i class="bi bi-exclamation-circle"></i> Fout bij samenvatten: ${error.message}`;
+			} finally {
+				summarizeBtn.disabled = false;
+				updateButtons();
+			}
+		}
+
+		// Rewrite reply with different tone/perspective
+		async function rewriteReply() {
+			if (!currentModel || !generatedResponse.textContent) return;
+
+			isGenerating = true;
+			updateButtons();
+
+			rewriteLoading.style.display = 'block';
+			responseContent.style.display = 'none';
+
+			try {
+				// Get current response and build rewrite prompt
+				const currentResponse = generatedResponse.textContent;
+
+				const rewritePrompt = `Herschrijf de volgende tekst op een iets ander, verbeterde manier. Behoud dezelfde boodschap maar maak het beter geschreven, natuurlijker, of professioneler (naar gelang de context). Geef ALLEEN de herschreven tekst, geen uitleg.\n\nOriginele tekst:\n${currentResponse}`;
+
+				const response = await fetch('http://localhost:11434/api/generate', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						model: currentModel,
+						prompt: rewritePrompt,
+						stream: false
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error(`Ollama error: ${response.statusText}`);
+				}
+
+				const data = await response.json();
+				generatedResponse.textContent = data.response.trim();
+				updateCharCounts();
+
+				rewriteLoading.style.display = 'none';
+				responseContent.style.display = 'block';
+
+			} catch (error) {
+				console.error('Error rewriting:', error);
+				generatedResponse.textContent = `❌ Herschrijf fout: ${error.message}`;
+				rewriteLoading.style.display = 'none';
+				responseContent.style.display = 'block';
+			} finally {
+				isGenerating = false;
+				updateButtons();
+			}
+		}
+
+		function escapeHtml(text) {
+			const div = document.createElement('div');
+			div.textContent = text;
+			return div.innerHTML;
+		}
+
+		// Build prompt based on context and profile
+		function buildPrompt() {
+			let prompt = '';
+
+			// Add context-specific instructions
+			const contextInstructions = {
+				'general': 'Je helpt met het schrijven van een reactie op een bericht.',
+				'linkedin-recruiter': 'Je helpt met het reageren op een LinkedIn recruiter bericht. Wees professioneel maar menselijk.',
+				'linkedin-post': 'Je helpt met het reageren op een LinkedIn post. Wees inhoudelijk en professioneel.',
+				'whatsapp': 'Je helpt met het reageren op een WhatsApp bericht. Je mag iets informeler en persoonlijker zijn.',
+				'email': 'Je helpt met het schrijven van een email reactie. Wees professioneel en duidelijk.',
+				'twitter': 'Je helpt met het reageren op een Twitter/X bericht. Wees beknopt (max 280 karakters ideaal).'
+			};
+
+			prompt += contextInstructions[currentContext] || contextInstructions['general'];
+			prompt += '\n\n';
+
+			// Add profile info if enabled
+			if (useProfileCheck.checked) {
+				const profile = getProfileData();
+				if (profile.name || profile.title || profile.skills) {
+					prompt += 'MIJN PROFIEL:\n';
+					if (profile.name) prompt += `Naam: ${profile.name}\n`;
+					if (profile.title) prompt += `Functie: ${profile.title}\n`;
+					if (profile.skills) prompt += `Vaardigheden: ${profile.skills}\n`;
+					if (profile.experience) prompt += `Ervaring: ${profile.experience}\n`;
+					if (profile.interests) prompt += `Interesses: ${profile.interests}\n`;
+					if (profile.location) prompt += `Locatie: ${profile.location}\n`;
+					prompt += '\n';
+				}
+			}
+
+			// Add original text
+			prompt += 'ORIGINELE TEKST WAAROP IK MOET REAGEREN:\n';
+			prompt += '---\n';
+			prompt += originalText.value.trim();
+			prompt += '\n---\n\n';
+
+			// Add user instructions
+			if (userInstructions.value.trim()) {
+				prompt += 'MIJN INSTRUCTIES:\n';
+				prompt += userInstructions.value.trim();
+				prompt += '\n\n';
+			}
+
+			// Final instruction
+			prompt += 'Schrijf nu een passend antwoord. Geef ALLEEN het antwoord zelf, geen extra uitleg of meta-commentaar.';
+			if (currentContext === 'twitter') {
+				prompt += ' Houd het kort (bij voorkeur onder 280 karakters).';
+			}
+
+			return prompt;
+		}
+
+		// Profile management
+		function getProfileData() {
+			return {
+				name: profileName.value.trim(),
+				title: profileTitle.value.trim(),
+				skills: profileSkills.value.trim(),
+				experience: profileExperience.value.trim(),
+				interests: profileInterests.value.trim(),
+				location: profileLocation.value.trim()
+			};
+		}
+
+		function saveProfile() {
+			const profile = getProfileData();
+
+			// Save to localStorage (in Electron this could use IPC to save to SQLite)
+			localStorage.setItem('nova_quick_reply_profile', JSON.stringify(profile));
+
+			// Show confirmation
+			profileSavedMsg.style.display = 'inline';
+			setTimeout(() => {
+				profileSavedMsg.style.display = 'none';
+			}, 3000);
+		}
+
+		function loadProfile() {
+			const saved = localStorage.getItem('nova_quick_reply_profile');
+			if (saved) {
+				try {
+					const profile = JSON.parse(saved);
+					profileName.value = profile.name || '';
+					profileTitle.value = profile.title || '';
+					profileSkills.value = profile.skills || '';
+					profileExperience.value = profile.experience || '';
+					profileInterests.value = profile.interests || '';
+					profileLocation.value = profile.location || '';
+				} catch (err) {
+					console.error('Failed to load profile:', err);
+				}
+			}
+		}
+
+		// Voice recording for instructions
+		async function startVoiceRecording() {
+			const voiceBtnElement = document.getElementById('voice-btn');
+			const voiceIndicator = document.getElementById('voice-recording-indicator');
+
+			if (isVoiceRecording) {
+				// Stop recording
+				stopVoiceRecording();
+				return;
+			}
+
+			try {
+				const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+				voiceRecorder = new MediaRecorder(stream);
+				voiceChunks = [];
+				isVoiceRecording = true;
+				voiceStartTime = Date.now();
+
+				voiceRecorder.ondataavailable = (event) => {
+					voiceChunks.push(event.data);
+				};
+
+				voiceRecorder.start();
+
+				// Update UI
+				voiceBtnElement.classList.add('btn-danger');
+				voiceBtnElement.classList.remove('btn-outline-secondary');
+				voiceBtnElement.innerHTML = '<i class="bi bi-stop-circle-fill"></i>';
+				voiceIndicator.style.display = 'block';
+
+				// Start timer
+				voiceInterval = setInterval(() => {
+					const elapsed = Math.floor((Date.now() - voiceStartTime) / 1000);
+					const minutes = Math.floor(elapsed / 60);
+					const seconds = elapsed % 60;
+					document.getElementById('voice-time').textContent =
+						`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+				}, 1000);
+
+			} catch (error) {
+				console.error('Microphone error:', error);
+				alert('Microphone permission denied or not available.');
+			}
+		}
+
+		function stopVoiceRecording() {
+			const voiceBtnElement = document.getElementById('voice-btn');
+			const voiceIndicator = document.getElementById('voice-recording-indicator');
+
+			if (voiceRecorder && isVoiceRecording) {
+				voiceRecorder.stop();
+				isVoiceRecording = false;
+				clearInterval(voiceInterval);
+
+				// Reset UI
+				voiceBtnElement.classList.remove('btn-danger');
+				voiceBtnElement.classList.add('btn-outline-secondary');
+				voiceBtnElement.innerHTML = '<i class="bi bi-mic-fill"></i>';
+				voiceIndicator.style.display = 'none';
+
+				voiceRecorder.onstop = async () => {
+					const audioBlob = new Blob(voiceChunks, { type: 'audio/wav' });
+					await transcribeVoiceInstructions(audioBlob);
+				};
+			}
+		}
+
+		async function transcribeVoiceInstructions(audioBlob) {
+			const voiceIndicator = document.getElementById('voice-recording-indicator');
+
+			try {
+				voiceIndicator.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"><span class="visually-hidden">Processing...</span></div><span class="fw-bold">Whisper verwerkt je spraak...</span>';
+				voiceIndicator.style.display = 'block';
+
+				// Convert blob to base64
+				const reader = new FileReader();
+				reader.onload = async () => {
+					const base64Audio = reader.result.split(',')[1];
+
+					// Call Ollama Whisper
+					const response = await fetch('http://localhost:11434/api/generate', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							model: 'whisper-small',
+							prompt: 'Transcribe the following audio in Dutch. Only return the transcribed text, nothing else.',
+							images: [base64Audio],
+							stream: false
+						})
+					});
+
+					if (!response.ok) {
+						throw new Error('Whisper transcription failed');
+					}
+
+					const data = await response.json();
+					const transcript = data.response.trim();
+
+					// Add to instructions
+					const currentText = userInstructions.value.trim();
+					userInstructions.value = currentText ? currentText + '\n' + transcript : transcript;
+					updateCharCounts();
+					updateButtons();
+
+					voiceIndicator.innerHTML = '<div class="alert-success" style="color: #198754;"><i class="bi bi-check-circle-fill me-2"></i><strong>✓ Opgenomen en verwerkt!</strong></div>';
+					voiceIndicator.style.display = 'block';
+
+					setTimeout(() => {
+						voiceIndicator.style.display = 'none';
+					}, 3000);
+				};
+				reader.readAsDataURL(audioBlob);
+
+			} catch (error) {
+				console.error('Voice transcription error:', error);
+				voiceIndicator.innerHTML = `<div class="alert-danger" style="color: #dc3545;"><i class="bi bi-x-circle-fill me-2"></i><strong>Fout:</strong> ${error.message}</div>`;
+				setTimeout(() => {
+					voiceIndicator.style.display = 'none';
+				}, 3000);
+			}
+		}
+
+		// Initialize on page load
+		init();
+	})();
+</script>

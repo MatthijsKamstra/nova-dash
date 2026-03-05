@@ -21,6 +21,7 @@
   "author": "Matthijs Kamstra",
   "license": "MIT",
   "dependencies": {
+    "@xenova/transformers": "^2.6.5",
     "better-sqlite3": "^9.4.3",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",

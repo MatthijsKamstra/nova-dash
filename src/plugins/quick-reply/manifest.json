@@ -1,0 +1,10 @@
+{
+  "id": "quick-reply",
+  "name": "Quick Reply",
+  "version": "1.0.0",
+  "description": "Smart response generator for LinkedIn, WhatsApp, emails and more",
+  "icon": "bi-reply-fill",
+  "category": "productivity",
+  "enabled": true,
+  "platforms": ["all"]
+}
