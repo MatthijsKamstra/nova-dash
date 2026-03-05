@@ -1,21 +1,220 @@
-<!-- image-gen.html — Ollama Image Generator placeholder -->
-<div class="nd-placeholder h-100" id="image-gen-root">
-	<i class="bi bi-image-fill text-success"></i>
-	<h2>Image Generator</h2>
-	<p id="image-gen-msg">Generate images locally via Ollama. Enter a prompt and let a local diffusion model do the
-		work.</p>
-	<span class="badge bg-secondary">Coming soon</span>
+<!-- image-gen.html — Ollama Image Generator -->
+<div class="container-fluid h-100" id="image-gen-root">
+
+	<!-- Platform warning (shown on non-macOS) -->
+	<div id="platform-warning" class="alert alert-warning d-none" role="alert">
+		<i class="bi bi-exclamation-triangle me-2"></i>
+		<strong>macOS Only:</strong> Image generation via Ollama is currently only supported on macOS.
+	</div>
+
+	<!-- Model Selector -->
+	<div id="image-gen-model-selector"></div>
+
+	<!-- Prompt Input -->
+	<div class="mb-3">
+		<label for="image-prompt" class="form-label">
+			<i class="bi bi-pencil me-1"></i> Image Description
+		</label>
+		<textarea class="form-control" id="image-prompt" rows="3"
+			placeholder="Describe the image you want to generate..."></textarea>
+		<div class="form-text">Be descriptive! Example: "A serene mountain landscape at sunset with a lake reflecting
+			orange and pink clouds"</div>
+	</div>
+
+	<!-- Actions -->
+	<div class="d-flex gap-2 mb-3">
+		<button class="btn btn-primary" id="image-generate" disabled>
+			<i class="bi bi-stars"></i> Generate Image
+		</button>
+		<button class="btn btn-outline-secondary" id="image-clear" title="Clear result">
+			<i class="bi bi-x-circle"></i> Clear
+		</button>
+	</div>
+
+	<!-- Progress -->
+	<div id="image-progress" class="d-none mb-3">
+		<div class="d-flex align-items-center">
+			<div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+				<span class="visually-hidden">Generating...</span>
+			</div>
+			<span id="image-progress-text">Generating image...</span>
+		</div>
+	</div>
+
+	<!-- Generated Image Display -->
+	<div id="image-result" class="d-none">
+		<h6 class="text-muted mb-2">Generated Image</h6>
+		<div class="border rounded p-3 bg-body-secondary text-center">
+			<img id="image-output" src="" alt="Generated image" class="img-fluid rounded" style="max-height: 500px;">
+		</div>
+		<div class="mt-2 d-flex gap-2">
+			<button class="btn btn-sm btn-outline-secondary" id="image-download">
+				<i class="bi bi-download"></i> Download
+			</button>
+			<button class="btn btn-sm btn-outline-secondary" id="image-copy">
+				<i class="bi bi-clipboard"></i> Copy to Clipboard
+			</button>
+		</div>
+	</div>
+
+	<!-- Quick Prompts -->
+	<div class="border-top pt-3 mt-3">
+		<h6 class="text-muted mb-2"><i class="bi bi-lightning me-1"></i> Quick Prompts</h6>
+		<div class="d-flex flex-wrap gap-2">
+			<button class="btn btn-sm btn-outline-secondary quick-prompt"
+				data-prompt="A futuristic cityscape at night with neon lights">🌃 Futuristic City</button>
+			<button class="btn btn-sm btn-outline-secondary quick-prompt"
+				data-prompt="A cozy coffee shop interior with warm lighting and books">☕ Cozy Cafe</button>
+			<button class="btn btn-sm btn-outline-secondary quick-prompt"
+				data-prompt="A majestic dragon flying over mountains">🐉 Dragon</button>
+			<button class="btn btn-sm btn-outline-secondary quick-prompt"
+				data-prompt="A serene Japanese garden with cherry blossoms">🌸 Zen Garden</button>
+			<button class="btn btn-sm btn-outline-secondary quick-prompt"
+				data-prompt="A spaceship cockpit view overlooking a distant planet">🚀 Space View</button>
+		</div>
+	</div>
 </div>
 
 <script>
-	// Warn on non-macOS
-	; (function () {
-		const platform = window.__platform || navigator.platform
-		if (platform !== 'darwin' && !platform.toLowerCase().includes('mac')) {
-			document.getElementById('image-gen-msg').textContent =
-				'Image generation via Ollama is currently only supported on macOS.'
-			document.getElementById('image-gen-root').querySelector('i').className =
-				'bi bi-exclamation-triangle text-warning'
+	(function () {
+		const platform = window.__platform || navigator.platform;
+		const isMac = platform === 'darwin' || platform.toLowerCase().includes('mac');
+
+		// Show warning on non-macOS
+		if (!isMac) {
+			document.getElementById('platform-warning').classList.remove('d-none');
 		}
-	})()
+
+		let currentModel = null;
+		let isGenerating = false;
+
+		const promptInput = document.getElementById('image-prompt');
+		const generateBtn = document.getElementById('image-generate');
+		const clearBtn = document.getElementById('image-clear');
+		const progressDiv = document.getElementById('image-progress');
+		const progressText = document.getElementById('image-progress-text');
+		const resultDiv = document.getElementById('image-result');
+		const outputImg = document.getElementById('image-output');
+		const downloadBtn = document.getElementById('image-download');
+		const copyBtn = document.getElementById('image-copy');
+
+		// Initialize
+		async function init() {
+			await window.ModelSelector.createModelSelector({
+				containerId: 'image-gen-model-selector',
+				category: 'image',
+				settingKey: 'image_gen_preferred_model',
+				defaultModel: 'x/flux2-klein:4b',
+				onChange: (model) => {
+					currentModel = model;
+					updateButtons();
+				}
+			});
+		}
+
+		// Update button states
+		function updateButtons() {
+			const hasPrompt = promptInput.value.trim().length > 0;
+			generateBtn.disabled = !currentModel || !hasPrompt || isGenerating || !isMac;
+		}
+
+		// Generate image
+		async function generateImage() {
+			const prompt = promptInput.value.trim();
+			if (!prompt || !currentModel || isGenerating || !isMac) return;
+
+			isGenerating = true;
+			generateBtn.disabled = true;
+			resultDiv.classList.add('d-none');
+			progressDiv.classList.remove('d-none');
+			progressText.textContent = 'Initializing generation...';
+
+			try {
+				const imageData = await window.OllamaAPI.generateImage({
+					model: currentModel,
+					prompt: prompt,
+					onProgress: (status) => {
+						progressText.textContent = status || 'Generating...';
+					}
+				});
+
+				if (imageData) {
+					// Assuming imageData is base64
+					outputImg.src = `data:image/png;base64,${imageData}`;
+					resultDiv.classList.remove('d-none');
+				} else {
+					alert('Image generation completed but no image data was returned.');
+				}
+
+			} catch (error) {
+				console.error('Image generation failed:', error);
+				alert(`Failed to generate image: ${error.message}`);
+			} finally {
+				progressDiv.classList.add('d-none');
+				isGenerating = false;
+				updateButtons();
+			}
+		}
+
+		// Clear result
+		function clearResult() {
+			resultDiv.classList.add('d-none');
+			outputImg.src = '';
+		}
+
+		// Download image
+		function downloadImage() {
+			const link = document.createElement('a');
+			link.download = `novadash-image-${Date.now()}.png`;
+			link.href = outputImg.src;
+			link.click();
+		}
+
+		// Copy image to clipboard
+		async function copyImage() {
+			try {
+				const response = await fetch(outputImg.src);
+				const blob = await response.blob();
+				await navigator.clipboard.write([
+					new ClipboardItem({ 'image/png': blob })
+				]);
+
+				const originalText = copyBtn.innerHTML;
+				copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+				setTimeout(() => {
+					copyBtn.innerHTML = originalText;
+				}, 2000);
+			} catch (error) {
+				console.error('Copy failed:', error);
+				alert('Failed to copy image to clipboard');
+			}
+		}
+
+		// Event listeners
+		generateBtn.addEventListener('click', generateImage);
+		clearBtn.addEventListener('click', clearResult);
+		downloadBtn.addEventListener('click', downloadImage);
+		copyBtn.addEventListener('click', copyImage);
+
+		promptInput.addEventListener('input', updateButtons);
+
+		promptInput.addEventListener('keydown', (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+				generateImage();
+			}
+		});
+
+		// Quick prompts
+		document.querySelectorAll('.quick-prompt').forEach(btn => {
+			btn.addEventListener('click', () => {
+				promptInput.value = btn.dataset.prompt;
+				updateButtons();
+			});
+		});
+
+		// Initialize
+		if (isMac) {
+			init();
+		}
+	})();
 </script>

@@ -1,0 +1,342 @@
+<!-- image-vision.html — Image Recognition with Vision AI -->
+<div class="container-fluid h-100">
+
+	<!-- Model Selector -->
+	<div id="vision-model-selector"></div>
+
+	<div class="row">
+		<!-- Image Upload -->
+		<div class="col-md-6 mb-3">
+			<label class="form-label">
+				<i class="bi bi-image me-1"></i> Image
+			</label>
+
+			<!-- Upload Area -->
+			<div class="border rounded p-4 text-center bg-body-secondary" id="vision-dropzone"
+				style="min-height: 300px; cursor: pointer;">
+				<div id="vision-upload-prompt">
+					<i class="bi bi-cloud-upload display-4 text-muted mb-3 d-block"></i>
+					<p class="text-muted">Click to upload or drag & drop an image</p>
+					<small class="text-muted">Supports: JPG, PNG, GIF, WebP</small>
+				</div>
+				<img id="vision-preview" class="img-fluid rounded d-none" style="max-height: 400px;" alt="Preview">
+			</div>
+			<input type="file" id="vision-file-input" class="d-none" accept="image/*">
+
+			<!-- Image Actions -->
+			<div class="mt-2 d-flex gap-2">
+				<button class="btn btn-sm btn-outline-secondary" id="vision-change-image" disabled>
+					<i class="bi bi-arrow-repeat"></i> Change Image
+				</button>
+				<button class="btn btn-sm btn-outline-secondary" id="vision-clear-image" disabled>
+					<i class="bi bi-x-circle"></i> Clear
+				</button>
+			</div>
+		</div>
+
+		<!-- Question & Analysis -->
+		<div class="col-md-6 mb-3">
+			<label for="vision-question" class="form-label">
+				<i class="bi bi-question-circle me-1"></i> Question about the image
+			</label>
+			<textarea class="form-control mb-2" id="vision-question" rows="3"
+				placeholder="What do you want to know about this image?"></textarea>
+
+			<!-- Quick Questions -->
+			<div class="mb-3">
+				<small class="text-muted d-block mb-1">Quick questions:</small>
+				<div class="d-flex flex-wrap gap-1">
+					<button class="btn btn-sm btn-outline-secondary quick-question"
+						data-q="Describe this image in detail">📝 Describe</button>
+					<button class="btn btn-sm btn-outline-secondary quick-question" data-q="What objects do you see?">🔍
+						Objects</button>
+					<button class="btn btn-sm btn-outline-secondary quick-question"
+						data-q="What is the mood or atmosphere?">🎭 Mood</button>
+					<button class="btn btn-sm btn-outline-secondary quick-question"
+						data-q="What colors are dominant?">🎨 Colors</button>
+					<button class="btn btn-sm btn-outline-secondary quick-question"
+						data-q="Read any text visible in the image">📖 OCR</button>
+				</div>
+			</div>
+
+			<!-- Analyze Button -->
+			<button class="btn btn-primary mb-3" id="vision-analyze" disabled>
+				<i class="bi bi-eye-fill"></i> Analyze Image
+			</button>
+
+			<!-- Error -->
+			<div id="vision-error" class="alert alert-danger d-none mb-3" role="alert">
+				<i class="bi bi-exclamation-triangle me-2"></i>
+				<span id="vision-error-text"></span>
+			</div>
+
+			<!-- Result -->
+			<div id="vision-result-container" class="d-none">
+				<label class="form-label">
+					<i class="bi bi-chat-left-text me-1"></i> Analysis Result
+				</label>
+				<div class="border rounded p-3 bg-body-secondary" id="vision-result"
+					style="min-height: 150px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+				</div>
+				<div class="mt-2">
+					<button class="btn btn-sm btn-outline-secondary" id="vision-copy-result">
+						<i class="bi bi-clipboard"></i> Copy Result
+					</button>
+				</div>
+			</div>
+
+			<!-- Progress -->
+			<div id="vision-progress" class="d-none">
+				<div class="d-flex align-items-center">
+					<div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+						<span class="visually-hidden">Analyzing...</span>
+					</div>
+					<span id="vision-progress-text">Analyzing image...</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Example Images -->
+	<div class="border-top pt-3 mt-3">
+		<h6 class="text-muted mb-2"><i class="bi bi-images me-1"></i> Try Example Images</h6>
+		<div class="d-flex flex-wrap gap-2">
+			<button class="btn btn-sm btn-outline-secondary" id="example-url">
+				🖼️ Load from URL
+			</button>
+		</div>
+	</div>
+</div>
+
+<style>
+	#vision-dropzone.dragover {
+		background-color: var(--bs-primary-bg-subtle);
+		border-color: var(--bs-primary);
+	}
+
+	#vision-result.streaming::after {
+		content: '▊';
+		animation: blink 1s infinite;
+	}
+
+	@keyframes blink {
+
+		0%,
+		100% {
+			opacity: 1;
+		}
+
+		50% {
+			opacity: 0;
+		}
+	}
+</style>
+
+<script>
+	(function () {
+		let currentModel = null;
+		let currentImage = null;
+		let isAnalyzing = false;
+
+		const dropzone = document.getElementById('vision-dropzone');
+		const fileInput = document.getElementById('vision-file-input');
+		const uploadPrompt = document.getElementById('vision-upload-prompt');
+		const preview = document.getElementById('vision-preview');
+		const changeImageBtn = document.getElementById('vision-change-image');
+		const clearImageBtn = document.getElementById('vision-clear-image');
+		const questionInput = document.getElementById('vision-question');
+		const analyzeBtn = document.getElementById('vision-analyze');
+		const progressDiv = document.getElementById('vision-progress');
+		const progressText = document.getElementById('vision-progress-text');
+		const errorBox = document.getElementById('vision-error');
+		const errorText = document.getElementById('vision-error-text');
+		const resultContainer = document.getElementById('vision-result-container');
+		const resultDiv = document.getElementById('vision-result');
+		const copyResultBtn = document.getElementById('vision-copy-result');
+
+		function showError(message) {
+			errorText.textContent = message;
+			errorBox.classList.remove('d-none');
+		}
+
+		function hideError() {
+			errorBox.classList.add('d-none');
+			errorText.textContent = '';
+		}
+
+		function updateButtons() {
+			const hasImage = Boolean(currentImage);
+			const hasQuestion = questionInput.value.trim().length > 0;
+			changeImageBtn.disabled = !hasImage || isAnalyzing;
+			clearImageBtn.disabled = !hasImage || isAnalyzing;
+			analyzeBtn.disabled = !currentModel || !hasImage || !hasQuestion || isAnalyzing;
+		}
+
+		async function init() {
+			await window.ModelSelector.createModelSelector({
+				containerId: 'vision-model-selector',
+				category: 'vision',
+				settingKey: 'vision_preferred_model',
+				defaultModel: 'moondream',
+				onChange: (model) => {
+					currentModel = model;
+					updateButtons();
+				}
+			});
+
+			const savedQuestion = localStorage.getItem('nova_vision_last_question');
+			if (savedQuestion) {
+				questionInput.value = savedQuestion;
+			}
+
+			updateButtons();
+		}
+
+		function clearImage() {
+			currentImage = null;
+			preview.src = '';
+			preview.classList.add('d-none');
+			uploadPrompt.classList.remove('d-none');
+			resultContainer.classList.add('d-none');
+			hideError();
+			updateButtons();
+		}
+
+		function handleFile(file) {
+			if (!file || !file.type.startsWith('image/')) {
+				showError('Selecteer een geldig afbeelding-bestand (jpg, png, webp, gif).');
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				const dataUrl = event.target.result;
+				preview.src = dataUrl;
+				preview.classList.remove('d-none');
+				uploadPrompt.classList.add('d-none');
+				currentImage = dataUrl.split(',')[1];
+				hideError();
+				updateButtons();
+			};
+			reader.readAsDataURL(file);
+		}
+
+		async function analyzeImage() {
+			const question = questionInput.value.trim();
+			if (!currentImage || !question || !currentModel || isAnalyzing) {
+				return;
+			}
+
+			isAnalyzing = true;
+			hideError();
+			resultContainer.classList.remove('d-none');
+			resultDiv.classList.add('streaming');
+			resultDiv.textContent = '';
+			progressText.textContent = `Analyzing with ${currentModel}...`;
+			progressDiv.classList.remove('d-none');
+			updateButtons();
+
+			localStorage.setItem('nova_vision_last_question', question);
+
+			let fullResponse = '';
+			try {
+				const response = await window.OllamaAPI.analyzeImage({
+					model: currentModel,
+					prompt: question,
+					image: currentImage,
+					onChunk: (chunk) => {
+						fullResponse += chunk;
+						resultDiv.textContent = fullResponse;
+					}
+				});
+
+				if (!fullResponse && response) {
+					fullResponse = response;
+					resultDiv.textContent = fullResponse;
+				}
+
+				if (!resultDiv.textContent.trim()) {
+					showError('Geen antwoord ontvangen van het vision model. Controleer of moondream is geïnstalleerd en Ollama draait.');
+				}
+			} catch (error) {
+				console.error('Vision analyze failed:', error);
+				showError(`Vision analyse mislukt: ${error.message}`);
+			} finally {
+				resultDiv.classList.remove('streaming');
+				progressDiv.classList.add('d-none');
+				isAnalyzing = false;
+				updateButtons();
+			}
+		}
+
+		async function copyResult() {
+			try {
+				await navigator.clipboard.writeText(resultDiv.textContent || '');
+				const original = copyResultBtn.innerHTML;
+				copyResultBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+				setTimeout(() => {
+					copyResultBtn.innerHTML = original;
+				}, 1500);
+			} catch (error) {
+				showError(`Kopiëren mislukt: ${error.message}`);
+			}
+		}
+
+		dropzone.addEventListener('click', () => {
+			if (!isAnalyzing) fileInput.click();
+		});
+
+		fileInput.addEventListener('change', (event) => {
+			if (event.target.files.length > 0) {
+				handleFile(event.target.files[0]);
+			}
+		});
+
+		dropzone.addEventListener('dragover', (event) => {
+			event.preventDefault();
+			if (!isAnalyzing) dropzone.classList.add('dragover');
+		});
+
+		dropzone.addEventListener('dragleave', () => {
+			dropzone.classList.remove('dragover');
+		});
+
+		dropzone.addEventListener('drop', (event) => {
+			event.preventDefault();
+			dropzone.classList.remove('dragover');
+			if (!isAnalyzing && event.dataTransfer.files.length > 0) {
+				handleFile(event.dataTransfer.files[0]);
+			}
+		});
+
+		changeImageBtn.addEventListener('click', () => fileInput.click());
+		clearImageBtn.addEventListener('click', clearImage);
+		analyzeBtn.addEventListener('click', analyzeImage);
+		copyResultBtn.addEventListener('click', copyResult);
+
+		questionInput.addEventListener('input', updateButtons);
+		questionInput.addEventListener('keydown', (event) => {
+			if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+				analyzeImage();
+			}
+		});
+
+		document.querySelectorAll('.quick-question').forEach((button) => {
+			button.addEventListener('click', () => {
+				questionInput.value = button.dataset.q;
+				updateButtons();
+			});
+		});
+
+		document.getElementById('example-url').addEventListener('click', () => {
+			const url = prompt('Enter image URL:');
+			if (!url) return;
+			fetch(url)
+				.then((response) => response.blob())
+				.then((blob) => handleFile(blob))
+				.catch((error) => showError(`Failed to load image: ${error.message}`));
+		});
+
+		init();
+	})();
+</script>

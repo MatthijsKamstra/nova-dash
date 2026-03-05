@@ -46,21 +46,54 @@ It is designed to be:
 Each module is developed as a standalone component and integrated as a page in NovaDash.
 Below is the current list of planned pages:
 
-| #   | Module                     | Description                                             | Platform     |
-| --- | -------------------------- | ------------------------------------------------------- | ------------ |
-| 1   | **Dashboard (Home)**       | Overview, quick tiles, recent todos, home time/weather  | All          |
-| 2   | **Ollama Chat**            | General chat interface powered by a local Ollama model  | All          |
-| 3   | **Ollama Image Generator** | Generate images via Ollama (e.g. diffusion models)      | macOS only\* |
-| 4   | **Ollama Translator**      | Translate text using a local Ollama model               | All          |
-| 5   | **Speech-to-Text**         | Record audio and transcribe to text                     | All          |
-| 6   | **Job Hunting Assistant**  | Generate motivatiebrief and custom CV from job postings | All          |
-| 7   | **Pomodoro Tracker**       | Focus timer with session logging                        | All          |
-| 8   | **To-Do List**             | Simple task management with SQLite persistence          | All          |
-| 9   | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults    | All          |
-| 10  | **Time**                   | Live local clock/date/timezone                          | All          |
-| 11  | **Local Weather**          | Local weather + short forecast via geolocation          | All          |
+| #   | Module                     | Description                                             | Platform     | Status      |
+| --- | -------------------------- | ------------------------------------------------------- | ------------ | ----------- |
+| 1   | **Dashboard (Home)**       | Overview, quick tiles, recent todos, home time/weather  | All          | Planned     |
+| 2   | **Ollama Chat**            | General chat interface powered by a local Ollama model  | All          | ✅ Complete |
+| 3   | **Ollama Image Generator** | Generate images via Ollama (e.g. diffusion models)      | macOS only\* | ✅ Complete |
+| 4   | **Ollama Translator**      | Translate text using a local Ollama model               | All          | ✅ Complete |
+| 5   | **Image Vision**           | Analyze images with vision AI (moondream)               | All          | ✅ Complete |
+| 6   | **Speech-to-Text**         | Record audio and transcribe to text                     | All          | Planned     |
+| 7   | **Job Hunting Assistant**  | Generate motivatiebrief and custom CV from job postings | All          | Planned     |
+| 8   | **Pomodoro Tracker**       | Focus timer with session logging                        | All          | Planned     |
+| 9   | **To-Do List**             | Simple task management with SQLite persistence          | All          | Planned     |
+| 10  | **Obsidian Integration**   | Create and manage Markdown files for Obsidian vaults    | All          | Planned     |
+| 11  | **Time**                   | Live local clock/date/timezone                          | All          | Planned     |
+| 12  | **Local Weather**          | Local weather + short forecast via geolocation          | All          | Planned     |
 
 > \* Some Ollama features currently only work on macOS. Platform-specific code paths must be handled gracefully (show a message on unsupported platforms).
+
+---
+
+## Model Selector System
+
+**NEW:** All Ollama-powered plugins now have intelligent model selection!
+
+### Features
+
+- **Auto-detection** of installed models via Ollama API
+- **Category filtering** - each plugin shows only relevant models
+- **Status monitoring** - visual indicator of Ollama service status
+- **Persistent preferences** - model choices saved to SQLite
+- **Real-time refresh** - update model list without page reload
+
+### Implementation
+
+- `src/utils/ollamaApi.js` - Wrapper for Ollama REST API
+- `src/utils/modelSelector.js` - Reusable UI component
+- Settings table stores: `chat_preferred_model`, `translator_preferred_model`, `image_gen_preferred_model`, `vision_preferred_model`
+
+### Model Categories
+
+```javascript
+chat: /llama|mistral|qwen|gemma|deepseek|kimi|phi/i;
+translate: /translate|gemma/i;
+image: /flux|stable|diffusion|z-image/i;
+vision: /moondream|llava|vision/i;
+code: /coder|codellama|starcoder/i;
+```
+
+See [MODELS.md](MODELS.md) for complete model guide and recommendations.
 
 ---
 
@@ -113,12 +146,16 @@ nova-dash/
 ├── preload.js               # Electron preload script
 ├── package.json
 ├── CLAUDE.md                # This file
+├── MODELS.md                # Model guide and recommendations
 ├── .github/
 │   └── copilot-instructions.md
 ├── src/
 │   ├── index.html           # App shell (sidebar + content area)
 │   ├── app.js               # Frontend router / logic
 │   ├── plugins.js           # Plugin loader/registry
+│   ├── utils/
+│   │   ├── ollamaApi.js     # Ollama API wrapper
+│   │   └── modelSelector.js # Model selector component
 │   ├── styles/
 │   │   └── main.css         # Custom styles on top of Bootstrap
 │   ├── pages/
@@ -129,7 +166,19 @@ nova-dash/
 │   ├── plugins/
 │   │   ├── chat/
 │   │   │   ├── manifest.json
-│   │   │   └── plugin.html
+│   │   │   └── plugin.html  # ✅ Implemented with model selector
+│   │   ├── translator/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html  # ✅ Implemented with model selector
+│   │   ├── image-gen/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html  # ✅ Implemented with model selector
+│   │   ├── image-vision/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html  # ✅ NEW: Vision AI for image analysis
+│   │   ├── ocr/
+│   │   │   ├── manifest.json
+│   │   │   └── plugin.html  # ✅ NEW: OCR text extraction
 │   │   ├── weather/
 │   │   │   ├── manifest.json
 │   │   │   └── plugin.html

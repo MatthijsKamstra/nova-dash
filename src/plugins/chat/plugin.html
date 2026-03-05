@@ -1,8 +1,258 @@
-<!-- chat.html — Ollama Chat placeholder -->
-<div class="nd-placeholder h-100">
-	<i class="bi bi-chat-dots-fill text-primary"></i>
-	<h2>Ollama Chat</h2>
-	<p>Local AI chat powered by Ollama running at <code>localhost:11434</code>. Send messages to any installed model.
-	</p>
-	<span class="badge bg-secondary">Coming soon</span>
+<!-- chat.html — Ollama Chat -->
+<div class="container-fluid h-100 d-flex flex-column">
+
+	<!-- Model Selector -->
+	<div id="chat-model-selector"></div>
+
+	<!-- Chat Messages -->
+	<div class="flex-grow-1 overflow-auto mb-3 border rounded p-3 bg-body-secondary" id="chat-messages"
+		style="min-height: 200px;">
+		<div class="text-center text-muted py-5">
+			<i class="bi bi-chat-dots display-4 mb-3 d-block"></i>
+			<p>Start a conversation with your local AI model</p>
+		</div>
+	</div>
+
+	<!-- Input Area -->
+	<div class="input-group">
+		<input type="text" class="form-control" id="chat-input" placeholder="Type your message..." autocomplete="off">
+		<button class="btn btn-primary" type="button" id="chat-send" disabled>
+			<i class="bi bi-send-fill"></i> Send
+		</button>
+		<button class="btn btn-outline-secondary" type="button" id="chat-clear" title="Clear chat">
+			<i class="bi bi-trash"></i>
+		</button>
+	</div>
 </div>
+
+<style>
+	.chat-message {
+		margin-bottom: 1rem;
+		padding: 0.75rem;
+		border-radius: 0.5rem;
+	}
+
+	.chat-message.user {
+		background: var(--bs-primary-bg-subtle);
+		border-left: 3px solid var(--bs-primary);
+	}
+
+	.chat-message.assistant {
+		background: var(--bs-secondary-bg-subtle);
+		border-left: 3px solid var(--bs-secondary);
+	}
+
+	.chat-message .role {
+		font-weight: 600;
+		font-size: 0.875rem;
+		margin-bottom: 0.25rem;
+		text-transform: uppercase;
+		opacity: 0.7;
+	}
+
+	.chat-message .content {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
+
+	.chat-message.streaming .content::after {
+		content: '▊';
+		animation: blink 1s infinite;
+	}
+
+	@keyframes blink {
+
+		0%,
+		100% {
+			opacity: 1;
+		}
+
+		50% {
+			opacity: 0;
+		}
+	}
+</style>
+
+<script>
+	(function () {
+		let currentModel = null;
+		let chatHistory = [];
+		let isStreaming = false;
+
+		const messagesContainer = document.getElementById('chat-messages');
+		const inputField = document.getElementById('chat-input');
+		const sendButton = document.getElementById('chat-send');
+		const clearButton = document.getElementById('chat-clear');
+
+		// Initialize model selector
+		async function init() {
+			await window.ModelSelector.createModelSelector({
+				containerId: 'chat-model-selector',
+				category: 'chat',
+				settingKey: 'chat_preferred_model',
+				defaultModel: 'qwen2.5:7b-instruct-q4_K_M',
+				onChange: (model) => {
+					currentModel = model;
+					sendButton.disabled = !model || isStreaming;
+				}
+			});
+
+			// Load chat history from localStorage
+			loadChatHistory();
+		}
+
+		// Load persisted chat
+		function loadChatHistory() {
+			try {
+				const saved = localStorage.getItem('nova_chat_history');
+				if (saved) {
+					chatHistory = JSON.parse(saved);
+					renderMessages();
+				}
+			} catch (err) {
+				console.warn('Could not load chat history:', err);
+			}
+		}
+
+		// Save chat to localStorage
+		function saveChatHistory() {
+			try {
+				localStorage.setItem('nova_chat_history', JSON.stringify(chatHistory));
+			} catch (err) {
+				console.warn('Could not save chat history:', err);
+			}
+		}
+
+		// Render all messages
+		function renderMessages() {
+			if (chatHistory.length === 0) {
+				messagesContainer.innerHTML = `
+				<div class="text-center text-muted py-5">
+					<i class="bi bi-chat-dots display-4 mb-3 d-block"></i>
+					<p>Start a conversation with your local AI model</p>
+				</div>
+			`;
+				return;
+			}
+
+			messagesContainer.innerHTML = '';
+			chatHistory.forEach(msg => {
+				addMessageToDOM(msg.role, msg.content, false);
+			});
+			scrollToBottom();
+		}
+
+		// Add message to DOM
+		function addMessageToDOM(role, content, isNew = true) {
+			const msgDiv = document.createElement('div');
+			msgDiv.className = `chat-message ${role}`;
+			msgDiv.innerHTML = `
+			<div class="role">${role === 'user' ? '👤 You' : '🤖 Assistant'}</div>
+			<div class="content">${escapeHtml(content)}</div>
+		`;
+			messagesContainer.appendChild(msgDiv);
+
+			if (isNew) {
+				scrollToBottom();
+			}
+
+			return msgDiv;
+		}
+
+		// Update streaming message
+		function updateStreamingMessage(msgDiv, content) {
+			const contentDiv = msgDiv.querySelector('.content');
+			contentDiv.textContent = content;
+			scrollToBottom();
+		}
+
+		// Scroll to bottom
+		function scrollToBottom() {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}
+
+		// Escape HTML
+		function escapeHtml(text) {
+			const div = document.createElement('div');
+			div.textContent = text;
+			return div.innerHTML;
+		}
+
+		// Send message
+		async function sendMessage() {
+			const message = inputField.value.trim();
+			if (!message || !currentModel || isStreaming) return;
+
+			// Add user message
+			chatHistory.push({ role: 'user', content: message });
+			addMessageToDOM('user', message);
+			inputField.value = '';
+
+			// Create assistant message placeholder
+			const assistantMsgDiv = addMessageToDOM('assistant', '');
+			assistantMsgDiv.classList.add('streaming');
+
+			isStreaming = true;
+			sendButton.disabled = true;
+			inputField.disabled = true;
+
+			let assistantResponse = '';
+
+			try {
+				await window.OllamaAPI.chatStream({
+					model: currentModel,
+					messages: chatHistory,
+					onChunk: (chunk) => {
+						assistantResponse += chunk;
+						updateStreamingMessage(assistantMsgDiv, assistantResponse);
+					},
+					onComplete: (fullResponse) => {
+						assistantMsgDiv.classList.remove('streaming');
+						chatHistory.push({ role: 'assistant', content: fullResponse });
+						saveChatHistory();
+						isStreaming = false;
+						sendButton.disabled = false;
+						inputField.disabled = false;
+						inputField.focus();
+					},
+					onError: (error) => {
+						assistantMsgDiv.classList.remove('streaming');
+						updateStreamingMessage(assistantMsgDiv, `❌ Error: ${error.message}`);
+						isStreaming = false;
+						sendButton.disabled = false;
+						inputField.disabled = false;
+					}
+				});
+			} catch (error) {
+				assistantMsgDiv.classList.remove('streaming');
+				updateStreamingMessage(assistantMsgDiv, `❌ Error: ${error.message}`);
+				isStreaming = false;
+				sendButton.disabled = false;
+				inputField.disabled = false;
+			}
+		}
+
+		// Clear chat
+		function clearChat() {
+			if (confirm('Clear all chat history?')) {
+				chatHistory = [];
+				saveChatHistory();
+				renderMessages();
+			}
+		}
+
+		// Event listeners
+		sendButton.addEventListener('click', sendMessage);
+		clearButton.addEventListener('click', clearChat);
+
+		inputField.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				sendMessage();
+			}
+		});
+
+		// Initialize
+		init();
+	})();
+</script>

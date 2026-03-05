@@ -27,6 +27,10 @@ const assets = [
 	['node_modules/bootstrap/dist/js/bootstrap.bundle.min.js', 'bootstrap/js/bootstrap.bundle.min.js'],
 	['node_modules/bootstrap-icons/font/bootstrap-icons.min.css', 'bootstrap-icons/font/bootstrap-icons.min.css'],
 	['node_modules/bootstrap-icons/font/fonts', 'bootstrap-icons/font/fonts'],
+	['node_modules/tesseract.js/dist/tesseract.min.js', 'tesseract/tesseract.min.js'],
+	['node_modules/tesseract.js/dist/worker.min.js', 'tesseract/worker.min.js'],
+	['node_modules/tesseract.js-core/tesseract-core-lstm.wasm.js', 'tesseract-core/tesseract-core-lstm.wasm.js'],
+	['node_modules/tesseract.js-core/tesseract-core-lstm.wasm', 'tesseract-core/tesseract-core-lstm.wasm'],
 ]
 
 let ok = true

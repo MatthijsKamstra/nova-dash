@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, session } = require('electron')
 const path = require('path')
 
 // Enable hot reload in development
@@ -46,6 +46,24 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+	// Allow geolocation permissions for weather plugin
+	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+		// Auto-approve geolocation for local weather
+		if (permission === 'geolocation') {
+			callback(true)
+		} else {
+			callback(false)
+		}
+	})
+
+	// Also handle permission checks
+	session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+		if (permission === 'geolocation') {
+			return true
+		}
+		return false
+	})
+
 	createWindow()
 
 	app.on('activate', () => {

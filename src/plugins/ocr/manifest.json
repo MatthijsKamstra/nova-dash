@@ -1,0 +1,18 @@
+{
+  "id": "ocr",
+  "label": "OCR Scanner",
+  "icon": "bi-upc-scan",
+  "description": "Extract text from images using Tesseract.js OCR engine",
+  "enabledByDefault": true,
+  "requiredPlatform": null,
+  "requirements": [
+    {
+      "name": "Tesseract.js",
+      "type": "library",
+      "installed": true,
+      "url": "https://tesseract.projectnaptha.com/",
+      "description": "JavaScript OCR library (included in NovaDash)",
+      "instructions": "Tesseract.js is bundled with NovaDash - no installation needed!"
+    }
+  ]
+}

@@ -26,21 +26,35 @@ You can run it as a **desktop app** (Windows & macOS) or as a **local website** 
 
 ## Features
 
-| Module                  | Description                                                            | Platform     |
-| ----------------------- | ---------------------------------------------------------------------- | ------------ |
-| 🏠 **Dashboard**        | Quick-access overview, recent to-dos, Pomodoro, local time and weather | All          |
-| 💬 **Ollama Chat**      | General-purpose chat using any locally installed Ollama model          | All          |
-| 🖼️ **Image Generator**  | Generate images via a local Ollama diffusion model                     | macOS only\* |
-| 🌐 **Translator**       | Translate text between languages using a local Ollama model            | All          |
-| 🎙️ **Speech to Text**   | Record audio and transcribe it to text                                 | All          |
-| 💼 **Job Hunting**      | Generate custom CV and motivatiebrief from job postings                | All          |
-| ⏱️ **Pomodoro Tracker** | Focus timer with session logging to SQLite                             | All          |
-| ✅ **To-Do List**       | Simple persistent task manager backed by SQLite                        | All          |
-| 📓 **Obsidian Notes**   | Create and browse Markdown files in your Obsidian vault                | All          |
-| 🕒 **Time**             | Live local clock/date/timezone                                         | All          |
-| 🌤️ **Local Weather**    | Current local weather and short forecast via geolocation               | All          |
+| Module                  | Description                                                            | Platform     | Status      |
+| ----------------------- | ---------------------------------------------------------------------- | ------------ | ----------- |
+| 🏠 **Dashboard**        | Quick-access overview, recent to-dos, Pomodoro, local time and weather | All          | Planned     |
+| 💬 **Ollama Chat**      | General-purpose chat using any locally installed Ollama model          | All          | ✅ Complete |
+| 🖼️ **Image Generator**  | Generate images via a local Ollama diffusion model                     | macOS only\* | ✅ Complete |
+| 🌐 **Translator**       | Translate text between languages using a local Ollama model            | All          | ✅ Complete |
+| 👁️ **Image Vision**     | Analyze images and answer questions using vision AI (moondream)        | All          | ✅ Complete |
+| 📄 **OCR Scanner**      | Extract text from images, documents, screenshots, and receipts         | All          | ✅ Complete |
+| 🎙️ **Speech to Text**   | Record audio and transcribe it to text                                 | All          | Planned     |
+| 💼 **Job Hunting**      | Generate custom CV and motivatiebrief from job postings                | All          | Planned     |
+| ⏱️ **Pomodoro Tracker** | Focus timer with session logging to SQLite                             | All          | Planned     |
+| ✅ **To-Do List**       | Simple persistent task manager backed by SQLite                        | All          | Planned     |
+| 📓 **Obsidian Notes**   | Create and browse Markdown files in your Obsidian vault                | All          | Planned     |
+| 🕒 **Time**             | Live local clock/date/timezone                                         | All          | Planned     |
+| 🌤️ **Local Weather**    | Current local weather and short forecast via geolocation               | All          | Planned     |
 
 > \* Ollama image generation currently only works on macOS. On Windows, NovaDash shows a graceful "not available" message.
+
+### 🆕 Model Selector System
+
+All Ollama plugins now feature **intelligent model selection**:
+
+- ✅ **Auto-detection** - Automatically discovers installed Ollama models
+- ✅ **Smart filtering** - Shows only relevant models per plugin (e.g., translation models for Translator)
+- ✅ **Status monitoring** - Real-time indicator of Ollama service status
+- ✅ **Persistent preferences** - Remembers your model choice per plugin
+- ✅ **One-click refresh** - Update available models without page reload
+
+See [MODELS.md](MODELS.md) for complete model recommendations and usage guide.
 
 ---
 

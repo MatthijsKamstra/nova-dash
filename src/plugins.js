@@ -23,6 +23,8 @@ async function loadPlugins() {
 	const pluginIds = [
 		'chat',
 		'image-gen',
+		'image-vision',
+		'ocr',
 		'translator',
 		'stt',
 		'time',

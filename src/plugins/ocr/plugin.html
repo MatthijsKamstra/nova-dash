@@ -1,0 +1,562 @@
+<!-- ocr.html — OCR Text Scanner with Tesseract.js -->
+<div class="container-fluid h-100">
+
+	<!-- Info Banner -->
+	<div class="alert alert-info mb-3">
+		<i class="bi bi-info-circle me-2"></i>
+		<strong>Real OCR:</strong> Uses Tesseract.js engine, no AI model needed. After first use per language
+		(download), OCR runs offline.
+	</div>
+
+	<div class="row">
+		<!-- Image Upload -->
+		<div class="col-md-5 mb-3">
+			<label class="form-label">
+				<i class="bi bi-image me-1"></i> Upload Image
+			</label>
+
+			<!-- Upload Area -->
+			<div class="border rounded p-4 text-center bg-body-secondary position-relative" id="ocr-dropzone"
+				style="min-height: 250px; cursor: pointer;">
+				<div id="ocr-upload-prompt">
+					<i class="bi bi-upc-scan display-4 text-primary mb-3 d-block"></i>
+					<p class="text-muted mb-2">Click to upload or drag & drop</p>
+					<small class="text-muted">Supports: JPG, PNG, Screenshots</small>
+					<div class="mt-3">
+						<small class="text-muted d-block">💡 Works best with:</small>
+						<small class="text-muted">• Clear text • High contrast • Straight orientation</small>
+					</div>
+				</div>
+				<img id="ocr-preview" class="img-fluid rounded d-none" style="max-height: 350px;" alt="Preview">
+			</div>
+			<input type="file" id="ocr-file-input" class="d-none" accept="image/*">
+
+			<!-- Image Actions -->
+			<div class="mt-2 d-flex gap-2">
+				<button class="btn btn-sm btn-outline-secondary" id="ocr-change-image" disabled>
+					<i class="bi bi-arrow-repeat"></i> Change
+				</button>
+				<button class="btn btn-sm btn-outline-secondary" id="ocr-clear-image" disabled>
+					<i class="bi bi-x-circle"></i> Clear
+				</button>
+				<button class="btn btn-sm btn-outline-secondary" id="ocr-paste" title="Paste from clipboard">
+					<i class="bi bi-clipboard"></i> Paste
+				</button>
+			</div>
+		</div>
+
+		<!-- OCR Options & Result -->
+		<div class="col-md-7 mb-3">
+
+			<!-- OCR Language -->
+			<div class="mb-3">
+				<label class="form-label">
+					<i class="bi bi-globe me-1"></i> Language
+				</label>
+				<select class="form-select" id="ocr-language">
+					<option value="auto">Auto (detect best match)</option>
+					<option value="eng">English</option>
+					<option value="nld">Nederlands (Dutch)</option>
+					<option value="deu">Deutsch (German)</option>
+					<option value="fra">Français (French)</option>
+					<option value="spa">Español (Spanish)</option>
+					<option value="ita">Italiano (Italian)</option>
+					<option value="por">Português (Portuguese)</option>
+				</select>
+				<div class="form-text">Select the language of the text in the image</div>
+			</div>
+
+			<!-- Extract Button -->
+			<button class="btn btn-primary w-100 mb-3" id="ocr-extract" disabled>
+				<i class="bi bi-upc-scan"></i> Extract Text
+			</button>
+
+			<!-- Progress -->
+			<div id="ocr-progress" class="d-none mb-3">
+				<div class="card">
+					<div class="card-body">
+						<div class="d-flex align-items-center mb-2">
+							<div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+								<span class="visually-hidden">Processing...</span>
+							</div>
+							<span id="ocr-status-text">Initializing OCR...</span>
+						</div>
+						<div class="progress" style="height: 4px;">
+							<div class="progress-bar progress-bar-striped progress-bar-animated" id="ocr-progress-bar"
+								role="progressbar" style="width: 0%"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Error Display -->
+			<div id="ocr-error" class="alert alert-danger d-none mb-3" role="alert">
+				<i class="bi bi-exclamation-triangle me-2"></i>
+				<span id="ocr-error-text"></span>
+			</div>
+
+			<!-- Result -->
+			<div id="ocr-result-container" class="d-none">
+				<label class="form-label d-flex justify-content-between align-items-center">
+					<span><i class="bi bi-file-text me-1"></i> Extracted Text</span>
+					<div class="d-flex gap-2 flex-wrap justify-content-end">
+						<span class="badge bg-secondary" id="ocr-char-count">0 characters</span>
+						<span class="badge bg-info text-dark" id="ocr-language-used">Lang: -</span>
+						<span class="badge bg-primary" id="ocr-confidence">Confidence: -</span>
+					</div>
+				</label>
+				<textarea class="form-control mb-2" id="ocr-result" rows="12"
+					style="font-family: 'Courier New', monospace;"></textarea>
+
+				<!-- Result Actions -->
+				<div class="d-flex gap-2 flex-wrap">
+					<button class="btn btn-sm btn-primary" id="ocr-copy-result">
+						<i class="bi bi-clipboard"></i> Copy Text
+					</button>
+					<button class="btn btn-sm btn-outline-secondary" id="ocr-download-txt">
+						<i class="bi bi-download"></i> Download TXT
+					</button>
+					<button class="btn btn-sm btn-outline-secondary" id="ocr-clear-result">
+						<i class="bi bi-x-circle"></i> Clear
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Quick Tips -->
+	<div class="border-top pt-3 mt-3">
+		<h6 class="text-muted mb-2"><i class="bi bi-lightbulb me-1"></i> Tips for Better Results</h6>
+		<div class="row g-2">
+			<div class="col-md-3">
+				<div class="card card-body bg-body-secondary p-2">
+					<small><i class="bi bi-brightness-high"></i> Good lighting</small>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card card-body bg-body-secondary p-2">
+					<small><i class="bi bi-aspect-ratio"></i> Clear, sharp images</small>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card card-body bg-body-secondary p-2">
+					<small><i class="bi bi-arrows-angle-contract"></i> High contrast</small>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="card card-body bg-body-secondary p-2">
+					<small><i class="bi bi-grid-3x2"></i> Straight text</small>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	#ocr-dropzone.dragover {
+		background-color: var(--bs-primary-bg-subtle);
+		border-color: var(--bs-primary);
+		border-width: 2px;
+	}
+
+	#ocr-result:focus {
+		border-color: var(--bs-primary);
+		box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+	}
+
+	.progress {
+		background-color: var(--bs-secondary-bg);
+	}
+</style>
+
+<script>
+	(function () {
+		let currentImage = null;
+		let isExtracting = false;
+		let tesseractWorker = null;
+		let currentWorkerLanguage = null;
+
+		const dropzone = document.getElementById('ocr-dropzone');
+		const fileInput = document.getElementById('ocr-file-input');
+		const uploadPrompt = document.getElementById('ocr-upload-prompt');
+		const preview = document.getElementById('ocr-preview');
+		const languageSelect = document.getElementById('ocr-language');
+		const changeImageBtn = document.getElementById('ocr-change-image');
+		const clearImageBtn = document.getElementById('ocr-clear-image');
+		const pasteBtn = document.getElementById('ocr-paste');
+		const extractBtn = document.getElementById('ocr-extract');
+		const progressDiv = document.getElementById('ocr-progress');
+		const progressBar = document.getElementById('ocr-progress-bar');
+		const statusText = document.getElementById('ocr-status-text');
+		const errorDiv = document.getElementById('ocr-error');
+		const errorText = document.getElementById('ocr-error-text');
+		const resultContainer = document.getElementById('ocr-result-container');
+		const resultTextarea = document.getElementById('ocr-result');
+		const charCount = document.getElementById('ocr-char-count');
+		const confidenceBadge = document.getElementById('ocr-confidence');
+		const languageUsedBadge = document.getElementById('ocr-language-used');
+		const copyResultBtn = document.getElementById('ocr-copy-result');
+		const downloadTxtBtn = document.getElementById('ocr-download-txt');
+		const clearResultBtn = document.getElementById('ocr-clear-result');
+		const AUTO_LANGUAGES = ['nld', 'eng', 'deu', 'fra', 'spa', 'ita', 'por'];
+
+		// Initialize
+		async function init() {
+			// Load saved language preference
+			const savedLang = localStorage.getItem('nova_ocr_language') || 'eng';
+			languageSelect.value = savedLang;
+		}
+
+		async function ensureTesseractLoaded() {
+			if (window.Tesseract) return;
+
+			if (!window.__novaDashTesseractLoadingPromise) {
+				window.__novaDashTesseractLoadingPromise = new Promise((resolve, reject) => {
+					const script = document.createElement('script');
+					script.src = 'vendor/tesseract/tesseract.min.js';
+					script.async = true;
+					script.onload = () => {
+						if (window.Tesseract) {
+							resolve();
+						} else {
+							reject(new Error('Tesseract library loaded but global object is missing.'));
+						}
+					};
+					script.onerror = () => reject(new Error('Could not load local OCR runtime from vendor assets.'));
+					document.head.appendChild(script);
+				});
+			}
+
+			await window.__novaDashTesseractLoadingPromise;
+		}
+
+		function updateProgressFromLogger(message) {
+			if (!message) return;
+			const label = message.status || 'Processing';
+			statusText.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+			if (typeof message.progress === 'number') {
+				const progress = Math.round(message.progress * 100);
+				progressBar.style.width = progress + '%';
+				statusText.textContent = `${label.charAt(0).toUpperCase() + label.slice(1)}... ${progress}%`;
+			}
+		}
+
+		function updateConfidenceDisplay(confidence) {
+			if (typeof confidence !== 'number' || Number.isNaN(confidence)) {
+				confidenceBadge.textContent = 'Confidence: -';
+				confidenceBadge.className = 'badge bg-primary';
+				return;
+			}
+
+			const rounded = Math.round(confidence);
+			confidenceBadge.textContent = `Confidence: ${rounded}`;
+			if (rounded >= 85) {
+				confidenceBadge.className = 'badge bg-success';
+			} else if (rounded >= 60) {
+				confidenceBadge.className = 'badge bg-warning text-dark';
+			} else {
+				confidenceBadge.className = 'badge bg-danger';
+			}
+		}
+
+		function updateLanguageDisplay(lang) {
+			if (!lang) {
+				languageUsedBadge.textContent = 'Lang: -';
+				return;
+			}
+			languageUsedBadge.textContent = `Lang: ${lang}`;
+		}
+
+		async function ensureWorker(language) {
+			await ensureTesseractLoaded();
+
+			if (tesseractWorker && currentWorkerLanguage === language) {
+				return;
+			}
+
+			if (tesseractWorker) {
+				await tesseractWorker.terminate();
+				tesseractWorker = null;
+				currentWorkerLanguage = null;
+			}
+
+			statusText.textContent = `Starting OCR engine (${language})...`;
+			progressBar.style.width = '10%';
+
+			tesseractWorker = await window.Tesseract.createWorker(language, 1, {
+				workerPath: 'vendor/tesseract/worker.min.js',
+				corePath: 'vendor/tesseract-core/tesseract-core-lstm.wasm.js',
+				logger: updateProgressFromLogger
+			});
+
+			currentWorkerLanguage = language;
+		}
+
+		// Show error
+		function showError(message) {
+			errorText.textContent = message;
+			errorDiv.classList.remove('d-none');
+		}
+
+		// Hide error
+		function hideError() {
+			errorDiv.classList.add('d-none');
+			errorText.textContent = '';
+		}
+
+		// Update button states
+		function updateButtons() {
+			const hasImage = currentImage !== null;
+
+			changeImageBtn.disabled = !hasImage || isExtracting;
+			clearImageBtn.disabled = !hasImage || isExtracting;
+			extractBtn.disabled = !hasImage || isExtracting;
+		}
+
+		// Handle file selection
+		async function handleFile(file) {
+			if (!file || !file.type.startsWith('image/')) {
+				showError('Please select a valid image file (JPG, PNG, etc.)');
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = async (e) => {
+				currentImage = e.target.result;
+
+				// Show preview
+				preview.src = currentImage;
+				preview.classList.remove('d-none');
+				uploadPrompt.classList.add('d-none');
+
+				hideError();
+				updateButtons();
+			};
+			reader.readAsDataURL(file);
+		}
+
+		// Clear image
+		function clearImage() {
+			currentImage = null;
+			preview.src = '';
+			preview.classList.add('d-none');
+			uploadPrompt.classList.remove('d-none');
+			resultContainer.classList.add('d-none');
+			hideError();
+			updateButtons();
+		}
+
+		// Extract text via Tesseract OCR
+		async function extractText() {
+			if (!currentImage || isExtracting) return;
+
+			isExtracting = true;
+			updateButtons();
+			resultContainer.classList.add('d-none');
+			progressDiv.classList.remove('d-none');
+			progressBar.style.width = '0%';
+			statusText.textContent = 'Initializing OCR...';
+			resultTextarea.value = '';
+			hideError();
+
+			// Save language preference
+			const language = languageSelect.value;
+			localStorage.setItem('nova_ocr_language', language);
+
+			try {
+				let result = null;
+				let finalLanguage = language;
+
+				if (language === 'auto') {
+					let bestResult = null;
+					let bestLanguage = null;
+					let bestScore = -1;
+
+					for (let index = 0; index < AUTO_LANGUAGES.length; index++) {
+						const candidateLanguage = AUTO_LANGUAGES[index];
+						statusText.textContent = `Auto mode: trying ${candidateLanguage} (${index + 1}/${AUTO_LANGUAGES.length})...`;
+						progressBar.style.width = `${Math.round(((index + 1) / AUTO_LANGUAGES.length) * 40)}%`;
+
+						await ensureWorker(candidateLanguage);
+						const candidateResult = await tesseractWorker.recognize(currentImage);
+						const text = (candidateResult?.data?.text || '').trim();
+						const confidence = Number(candidateResult?.data?.confidence || 0);
+
+						if (text.length > 0 && confidence > bestScore) {
+							bestScore = confidence;
+							bestResult = candidateResult;
+							bestLanguage = candidateLanguage;
+						}
+					}
+
+					if (!bestResult) {
+						throw new Error('Auto mode could not find readable text in supported languages.');
+					}
+
+					result = bestResult;
+					finalLanguage = bestLanguage;
+				} else {
+					await ensureWorker(language);
+					statusText.textContent = 'Recognizing text...';
+					result = await tesseractWorker.recognize(currentImage);
+				}
+
+				// Show result
+				const extractedText = result.data.text.trim();
+
+				if (!extractedText) {
+					showError('No text found in the image. Make sure the image contains clear, readable text.');
+					progressDiv.classList.add('d-none');
+					return;
+				}
+
+				resultTextarea.value = extractedText;
+				updateCharCount(extractedText);
+				updateLanguageDisplay(finalLanguage);
+				updateConfidenceDisplay(result.data.confidence);
+				resultContainer.classList.remove('d-none');
+				progressDiv.classList.add('d-none');
+
+				console.log('OCR confidence:', result.data.confidence);
+				if (result.data.confidence < 60) {
+					showError(`Low confidence (${Math.round(result.data.confidence)}%). Result may be inaccurate. Try a clearer image.`);
+				}
+
+			} catch (error) {
+				console.error('OCR failed:', error);
+				showError('Text extraction failed: ' + error.message + ' (engine auto-retry failed)');
+				progressDiv.classList.add('d-none');
+			} finally {
+				isExtracting = false;
+				updateButtons();
+			}
+		}
+
+		// Update character count
+		function updateCharCount(text) {
+			const count = text.length;
+			const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+			const lines = text.split('\n').length;
+			charCount.textContent = `${count} chars • ${words} words • ${lines} lines`;
+		}
+
+		// Copy result
+		function copyResult() {
+			resultTextarea.select();
+			document.execCommand('copy');
+
+			const originalText = copyResultBtn.innerHTML;
+			copyResultBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+			setTimeout(() => {
+				copyResultBtn.innerHTML = originalText;
+			}, 2000);
+		}
+
+		// Download as TXT
+		function downloadTxt() {
+			const text = resultTextarea.value;
+			const blob = new Blob([text], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.download = `ocr-${Date.now()}.txt`;
+			link.href = url;
+			link.click();
+			URL.revokeObjectURL(url);
+		}
+
+		// Clear result
+		function clearResult() {
+			resultContainer.classList.add('d-none');
+			resultTextarea.value = '';
+			updateCharCount('');
+			updateLanguageDisplay(null);
+			updateConfidenceDisplay(null);
+		}
+
+		// Paste from clipboard
+		async function pasteFromClipboard() {
+			try {
+				const items = await navigator.clipboard.read();
+				for (const item of items) {
+					if (item.types.includes('image/png')) {
+						const blob = await item.getType('image/png');
+						handleFile(blob);
+						return;
+					}
+				}
+				showError('No image found in clipboard. Copy an image first (Cmd+Shift+4 for screenshot on Mac).');
+			} catch (error) {
+				console.error('Paste failed:', error);
+				showError('Failed to paste from clipboard: ' + error.message);
+			}
+		}
+
+		// Event listeners
+		dropzone.addEventListener('click', () => {
+			if (!isExtracting) fileInput.click();
+		});
+
+		fileInput.addEventListener('change', (e) => {
+			if (e.target.files.length > 0) {
+				handleFile(e.target.files[0]);
+			}
+		});
+
+		// Drag and drop
+		dropzone.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			if (!isExtracting) dropzone.classList.add('dragover');
+		});
+
+		dropzone.addEventListener('dragleave', () => {
+			dropzone.classList.remove('dragover');
+		});
+
+		dropzone.addEventListener('drop', (e) => {
+			e.preventDefault();
+			dropzone.classList.remove('dragover');
+
+			if (!isExtracting && e.dataTransfer.files.length > 0) {
+				handleFile(e.dataTransfer.files[0]);
+			}
+		});
+
+		changeImageBtn.addEventListener('click', () => fileInput.click());
+		clearImageBtn.addEventListener('click', clearImage);
+		pasteBtn.addEventListener('click', pasteFromClipboard);
+		extractBtn.addEventListener('click', extractText);
+		copyResultBtn.addEventListener('click', copyResult);
+		downloadTxtBtn.addEventListener('click', downloadTxt);
+		clearResultBtn.addEventListener('click', clearResult);
+
+		// Language change
+		languageSelect.addEventListener('change', () => {
+			localStorage.setItem('nova_ocr_language', languageSelect.value);
+		});
+
+		// Keyboard shortcuts
+		document.addEventListener('keydown', (e) => {
+			// Ctrl/Cmd + V when focused on page
+			if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isExtracting) {
+				if (document.activeElement === document.body || document.activeElement.tagName !== 'TEXTAREA') {
+					e.preventDefault();
+					pasteFromClipboard();
+				}
+			}
+			// Ctrl/Cmd + Enter to extract
+			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && currentImage && !isExtracting) {
+				extractText();
+			}
+		});
+
+		// Initialize on page load
+		init();
+
+		// Cleanup on page unload
+		window.addEventListener('beforeunload', async () => {
+			if (tesseractWorker) {
+				await tesseractWorker.terminate();
+			}
+		});
+	})();
+</script>

@@ -1,7 +1,287 @@
-<!-- translator.html — Ollama Translator placeholder -->
-<div class="nd-placeholder h-100">
-	<i class="bi bi-translate text-info"></i>
-	<h2>Translator</h2>
-	<p>Translate text between languages using a local Ollama model. No cloud API required.</p>
-	<span class="badge bg-secondary">Coming soon</span>
+<!-- translator.html — Ollama Translator -->
+<div class="container-fluid h-100">
+
+	<!-- Model Selector -->
+	<div id="translator-model-selector"></div>
+
+	<div class="row">
+		<!-- Source Text -->
+		<div class="col-md-6 mb-3">
+			<label for="translator-source" class="form-label">
+				<i class="bi bi-input-cursor-text me-1"></i> Source Text
+			</label>
+			<div class="mb-2">
+				<select id="translator-source-lang" class="form-select form-select-sm">
+					<option value="auto">Auto-detect</option>
+					<option value="en">English</option>
+					<option value="nl">Nederlands</option>
+					<option value="es">Español</option>
+					<option value="fr">Français</option>
+					<option value="de">Deutsch</option>
+					<option value="it">Italiano</option>
+					<option value="pt">Português</option>
+					<option value="ru">Русский</option>
+					<option value="zh">中文</option>
+					<option value="ja">日本語</option>
+					<option value="ko">한국어</option>
+				</select>
+			</div>
+			<textarea class="form-control" id="translator-source" rows="12"
+				placeholder="Enter text to translate..."></textarea>
+		</div>
+
+		<!-- Translated Text -->
+		<div class="col-md-6 mb-3">
+			<label for="translator-target" class="form-label">
+				<i class="bi bi-arrow-right-circle me-1"></i> Translation
+			</label>
+			<div class="mb-2">
+				<select id="translator-target-lang" class="form-select form-select-sm">
+					<option value="nl">Nederlands</option>
+					<option value="en">English</option>
+					<option value="es">Español</option>
+					<option value="fr">Français</option>
+					<option value="de">Deutsch</option>
+					<option value="it">Italiano</option>
+					<option value="pt">Português</option>
+					<option value="ru">Русский</option>
+					<option value="zh">中文</option>
+					<option value="ja">日本語</option>
+					<option value="ko">한국어</option>
+				</select>
+			</div>
+			<textarea class="form-control bg-body-secondary" id="translator-target" rows="12" readonly
+				placeholder="Translation will appear here..."></textarea>
+		</div>
+	</div>
+
+	<!-- Actions -->
+	<div class="d-flex gap-2 mb-3">
+		<button class="btn btn-primary" id="translator-translate" disabled>
+			<i class="bi bi-translate"></i> Translate
+		</button>
+		<button class="btn btn-outline-secondary" id="translator-swap" title="Swap languages">
+			<i class="bi bi-arrow-left-right"></i>
+		</button>
+		<button class="btn btn-outline-secondary" id="translator-copy" disabled title="Copy translation">
+			<i class="bi bi-clipboard"></i> Copy
+		</button>
+		<button class="btn btn-outline-secondary" id="translator-clear" title="Clear all">
+			<i class="bi bi-x-circle"></i> Clear
+		</button>
+	</div>
+
+	<!-- Quick phrases -->
+	<div class="border-top pt-3">
+		<h6 class="text-muted mb-2"><i class="bi bi-lightning me-1"></i> Quick Phrases</h6>
+		<div class="d-flex flex-wrap gap-2">
+			<button class="btn btn-sm btn-outline-secondary quick-phrase" data-text="Hello, how are you?">👋
+				Greeting</button>
+			<button class="btn btn-sm btn-outline-secondary quick-phrase" data-text="Thank you very much!">🙏
+				Thanks</button>
+			<button class="btn btn-sm btn-outline-secondary quick-phrase"
+				data-text="Where is the nearest restaurant?">🍽️ Restaurant</button>
+			<button class="btn btn-sm btn-outline-secondary quick-phrase" data-text="I need help, please.">🆘
+				Help</button>
+			<button class="btn btn-sm btn-outline-secondary quick-phrase" data-text="What time is it?">⏰ Time</button>
+		</div>
+	</div>
 </div>
+
+<style>
+	#translator-target.translating {
+		opacity: 0.6;
+	}
+
+	#translator-target.translating::after {
+		content: '⌛ Translating...';
+		display: block;
+		text-align: center;
+		color: var(--bs-secondary);
+		margin-top: 1rem;
+	}
+</style>
+
+<script>
+	(function () {
+		let currentModel = null;
+		let isTranslating = false;
+
+		const sourceText = document.getElementById('translator-source');
+		const targetText = document.getElementById('translator-target');
+		const sourceLang = document.getElementById('translator-source-lang');
+		const targetLang = document.getElementById('translator-target-lang');
+		const translateBtn = document.getElementById('translator-translate');
+		const swapBtn = document.getElementById('translator-swap');
+		const copyBtn = document.getElementById('translator-copy');
+		const clearBtn = document.getElementById('translator-clear');
+
+		// Language names
+		const langNames = {
+			'auto': 'Auto-detect',
+			'en': 'English',
+			'nl': 'Dutch',
+			'es': 'Spanish',
+			'fr': 'French',
+			'de': 'German',
+			'it': 'Italian',
+			'pt': 'Portuguese',
+			'ru': 'Russian',
+			'zh': 'Chinese',
+			'ja': 'Japanese',
+			'ko': 'Korean'
+		};
+
+		// Initialize
+		async function init() {
+			await window.ModelSelector.createModelSelector({
+				containerId: 'translator-model-selector',
+				category: 'translate',
+				settingKey: 'translator_preferred_model',
+				defaultModel: 'translategemma:4b',
+				onChange: (model) => {
+					currentModel = model;
+					updateButtons();
+				}
+			});
+
+			// Load saved languages
+			const savedSourceLang = localStorage.getItem('nova_translator_source_lang') || 'auto';
+			const savedTargetLang = localStorage.getItem('nova_translator_target_lang') || 'nl';
+			sourceLang.value = savedSourceLang;
+			targetLang.value = savedTargetLang;
+		}
+
+		// Update button states
+		function updateButtons() {
+			const hasSource = sourceText.value.trim().length > 0;
+			translateBtn.disabled = !currentModel || !hasSource || isTranslating;
+			copyBtn.disabled = targetText.value.trim().length === 0;
+		}
+
+		// Build translation prompt
+		function buildPrompt(text, fromLang, toLang) {
+			const fromName = fromLang === 'auto' ? 'the source language' : langNames[fromLang] || fromLang;
+			const toName = langNames[toLang] || toLang;
+
+			// Check if using TranslateGemma (special format)
+			if (currentModel && currentModel.includes('translategemma')) {
+				// TranslateGemma format: <2{target_lang}> {source_text}
+				const langCode = toLang.toUpperCase();
+				return `<2${langCode}> ${text}`;
+			}
+
+			// Generic translation prompt
+			return `Translate the following text from ${fromName} to ${toName}. Only output the translation, nothing else.\n\nText to translate:\n${text}`;
+		}
+
+		// Translate
+		async function translate() {
+			const text = sourceText.value.trim();
+			if (!text || !currentModel || isTranslating) return;
+
+			isTranslating = true;
+			translateBtn.disabled = true;
+			targetText.value = '';
+			targetText.classList.add('translating');
+
+			// Save language preferences
+			localStorage.setItem('nova_translator_source_lang', sourceLang.value);
+			localStorage.setItem('nova_translator_target_lang', targetLang.value);
+
+			const prompt = buildPrompt(text, sourceLang.value, targetLang.value);
+			let translation = '';
+
+			try {
+				await window.OllamaAPI.chatStream({
+					model: currentModel,
+					messages: [{ role: 'user', content: prompt }],
+					onChunk: (chunk) => {
+						translation += chunk;
+						targetText.value = translation;
+					},
+					onComplete: (fullResponse) => {
+						targetText.classList.remove('translating');
+						targetText.value = fullResponse.trim();
+						isTranslating = false;
+						updateButtons();
+					},
+					onError: (error) => {
+						targetText.classList.remove('translating');
+						targetText.value = `❌ Translation failed: ${error.message}`;
+						isTranslating = false;
+						updateButtons();
+					}
+				});
+			} catch (error) {
+				targetText.classList.remove('translating');
+				targetText.value = `❌ Translation failed: ${error.message}`;
+				isTranslating = false;
+				updateButtons();
+			}
+		}
+
+		// Swap languages
+		function swapLanguages() {
+			if (sourceLang.value === 'auto') {
+				alert('Cannot swap when source is auto-detect');
+				return;
+			}
+
+			const tempLang = sourceLang.value;
+			sourceLang.value = targetLang.value;
+			targetLang.value = tempLang;
+
+			const tempText = sourceText.value;
+			sourceText.value = targetText.value;
+			targetText.value = tempText;
+
+			updateButtons();
+		}
+
+		// Copy translation
+		function copyTranslation() {
+			targetText.select();
+			document.execCommand('copy');
+
+			const originalText = copyBtn.innerHTML;
+			copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+			setTimeout(() => {
+				copyBtn.innerHTML = originalText;
+			}, 2000);
+		}
+
+		// Clear all
+		function clearAll() {
+			sourceText.value = '';
+			targetText.value = '';
+			updateButtons();
+		}
+
+		// Event listeners
+		translateBtn.addEventListener('click', translate);
+		swapBtn.addEventListener('click', swapLanguages);
+		copyBtn.addEventListener('click', copyTranslation);
+		clearBtn.addEventListener('click', clearAll);
+
+		sourceText.addEventListener('input', updateButtons);
+
+		sourceText.addEventListener('keydown', (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+				translate();
+			}
+		});
+
+		// Quick phrases
+		document.querySelectorAll('.quick-phrase').forEach(btn => {
+			btn.addEventListener('click', () => {
+				sourceText.value = btn.dataset.text;
+				updateButtons();
+				translate();
+			});
+		});
+
+		// Initialize
+		init();
+	})();
+</script>
