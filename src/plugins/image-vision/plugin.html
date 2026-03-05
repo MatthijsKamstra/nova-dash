@@ -269,17 +269,53 @@
 			}
 		}
 
+		function legacyCopy(text) {
+			const tempTextArea = document.createElement('textarea');
+			tempTextArea.value = text;
+			tempTextArea.setAttribute('readonly', '');
+			tempTextArea.style.position = 'fixed';
+			tempTextArea.style.top = '-1000px';
+			tempTextArea.style.left = '-1000px';
+			document.body.appendChild(tempTextArea);
+			tempTextArea.focus();
+			tempTextArea.select();
+			const success = document.execCommand('copy');
+			document.body.removeChild(tempTextArea);
+			return success;
+		}
+
 		async function copyResult() {
-			try {
-				await navigator.clipboard.writeText(resultDiv.textContent || '');
-				const original = copyResultBtn.innerHTML;
-				copyResultBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
-				setTimeout(() => {
-					copyResultBtn.innerHTML = original;
-				}, 1500);
-			} catch (error) {
-				showError(`Kopiëren mislukt: ${error.message}`);
+			const textToCopy = resultDiv.textContent || '';
+			if (!textToCopy.trim()) {
+				showError('Er is geen tekst om te kopiëren.');
+				return;
 			}
+
+			let copied = false;
+			try {
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(textToCopy);
+					copied = true;
+				}
+			} catch (error) {
+				console.warn('Clipboard API failed, using fallback copy:', error);
+			}
+
+			if (!copied) {
+				copied = legacyCopy(textToCopy);
+			}
+
+			if (!copied) {
+				showError('Kopiëren mislukt. Probeer handmatig te selecteren en te kopiëren.');
+				return;
+			}
+
+			hideError();
+			const original = copyResultBtn.innerHTML;
+			copyResultBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+			setTimeout(() => {
+				copyResultBtn.innerHTML = original;
+			}, 1500);
 		}
 
 		dropzone.addEventListener('click', () => {
