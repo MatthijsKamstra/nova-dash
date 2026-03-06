@@ -1,5 +1,29 @@
 # TODO
 
+## STT Improvements (New)
+
+### Completed ✅
+
+- [x] Tray menu met start/stop recording shortcuts
+- [x] VAD (Voice Activity Detection) visual indicator
+- [x] Auto-silence stop na 3 seconden stilte
+- [x] SQLite transcript history met FTS full-text search
+- [x] Search functionaliteit in history panel
+- [x] Model caching in IndexedDB (offline-first na eerste gebruik)
+- [x] Tray status updates (idle/recording/transcribing)
+- [x] Metadata opslag (language, model, duration, confidence)
+- [x] Graceful fallback naar localStorage in browser mode
+
+### Next Steps
+
+- [ ] Tray icon variaties (idle/recording/transcribing states)
+- [ ] Keyboard shortcuts (cmd+shift+R voor quick record)
+- [ ] Export transcript naar clipboard/file
+- [ ] Whisper.cpp backend optie (volledig offline, geen CDN)
+- [ ] Background recording mode (minimize maar blijf opnemen)
+
+---
+
 ## Plugin Capabilities & Permissions
 
 1. Definieer capability schema in manifests

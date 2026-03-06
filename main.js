@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, session, systemPreferences } = require('electron')
+const { app, BrowserWindow, ipcMain, session, systemPreferences, Tray, Menu, nativeImage } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -18,6 +18,9 @@ if (process.env.NODE_ENV !== 'production') {
 const db = require('./src/db/database')
 
 const pluginManifestCache = new Map()
+let tray = null
+let mainWindow = null
+let trayMenu = null
 
 function getPluginManifest(pluginId) {
 	if (!pluginId) return null
@@ -44,8 +47,82 @@ function pluginDeclaresCapability(pluginId, capability) {
 	return capabilities.includes(capability)
 }
 
+function createTray() {
+	// Create tray without icon initially (macOS supports text-only tray)
+	try {
+		// Try to load icon if available
+		const iconPath = path.join(__dirname, 'assets', 'icons', 'icon.png')
+		let trayIcon = null
+
+		if (fs.existsSync(iconPath)) {
+			trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
+		}
+
+		// Create tray with or without icon
+		tray = new Tray(trayIcon || nativeImage.createEmpty())
+
+		// On macOS, text-based tray is common
+		if (process.platform === 'darwin') {
+			tray.setTitle('ND')  // "NovaDash" abbreviated
+		}
+	} catch (err) {
+		console.warn('[Tray] Failed to create tray icon:', err)
+		return
+	}
+
+	const contextMenu = Menu.buildFromTemplate([
+		{
+			label: '🎤 Start Recording',
+			click: () => {
+				if (mainWindow) {
+					mainWindow.show()
+					mainWindow.webContents.send('stt:start-recording')
+				}
+			}
+		},
+		{
+			label: '⏹ Stop Recording',
+			enabled: false,
+			id: 'stop-recording',
+			click: () => {
+				if (mainWindow) {
+					mainWindow.webContents.send('stt:stop-recording')
+				}
+			}
+		},
+		{ type: 'separator' },
+		{
+			label: 'Open STT',
+			click: () => {
+				if (mainWindow) {
+					mainWindow.show()
+					mainWindow.webContents.send('navigate-to', 'stt')
+				}
+			}
+		},
+		{
+			label: 'Open Chat',
+			click: () => {
+				if (mainWindow) {
+					mainWindow.show()
+					mainWindow.webContents.send('navigate-to', 'chat')
+				}
+			}
+		},
+		{ type: 'separator' },
+		{
+			label: 'Quit',
+			click: () => app.quit()
+		}
+	])
+
+	trayMenu = contextMenu
+	tray.setContextMenu(contextMenu)
+	tray.setToolTip('NovaDash')
+}
+
 function createWindow() {
-	const win = new BrowserWindow({
+	mainWindow = new BrowserWindow({
 		width: 1200,
 		height: 800,
 		minWidth: 800,
@@ -62,18 +139,31 @@ function createWindow() {
 		show: false
 	})
 
-	win.loadFile('src/index.html')
+	mainWindow.loadFile('src/index.html')
 
-	win.once('ready-to-show', () => {
-		win.show()
+	mainWindow.once('ready-to-show', () => {
+		mainWindow.show()
 	})
 
 	if (process.env.NODE_ENV !== 'production') {
-		win.webContents.openDevTools({ mode: 'detach' })
+		mainWindow.webContents.openDevTools({ mode: 'detach' })
+	}
+
+	// Don't fully close on macOS, just hide
+	if (process.platform === 'darwin') {
+		mainWindow.on('close', (event) => {
+			if (!app.isQuitting) {
+				event.preventDefault()
+				mainWindow.hide()
+			}
+		})
 	}
 }
 
 app.whenReady().then(() => {
+	createWindow()
+	createTray()
+
 	// Allow geolocation permissions for weather plugin
 	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
 		// Auto-approve geolocation for local weather
@@ -108,8 +198,6 @@ app.whenReady().then(() => {
 		return false
 	})
 
-	createWindow()
-
 	app.on('activate', () => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow()
 	})
@@ -117,6 +205,16 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+	app.isQuitting = true
+})
+
+app.on('activate', () => {
+	if (mainWindow) {
+		mainWindow.show()
+	}
 })
 
 // ── IPC handlers ────────────────────────────────────────────────────────────
@@ -181,3 +279,32 @@ ipcMain.handle('settings:set', (_e, key, value) => db.setSetting(key, value))
 ipcMain.handle('notes:getAll', () => db.getAllNotes())
 ipcMain.handle('notes:save', (_e, note) => db.saveNote(note))
 ipcMain.handle('notes:delete', (_e, id) => db.deleteNote(id))
+
+// ── STT Transcripts ──
+ipcMain.handle('stt:save', (_e, transcript) => db.saveSTTTranscript(transcript))
+ipcMain.handle('stt:getHistory', (_e, limit, offset) => db.getSTTTranscripts(limit, offset))
+ipcMain.handle('stt:search', (_e, query, limit) => db.searchSTTTranscripts(query, limit))
+ipcMain.handle('stt:delete', (_e, id) => db.deleteSTTTranscript(id))
+
+// ── Tray Status Updates ──
+ipcMain.on('tray:update-status', (_event, status) => {
+	if (!tray || !trayMenu) return
+
+	const menu = trayMenu
+	const stopItem = menu.getMenuItemById('stop-recording')
+
+	if (status === 'recording') {
+		if (process.platform === 'darwin') tray.setTitle('🔴')
+		if (stopItem) stopItem.enabled = true
+	} else if (status === 'transcribing') {
+		if (process.platform === 'darwin') tray.setTitle('⚙️')
+		if (stopItem) stopItem.enabled = false
+	} else {
+		if (process.platform === 'darwin') tray.setTitle('')
+		if (stopItem) stopItem.enabled = false
+	}
+
+	if (menu && tray) {
+		tray.setContextMenu(menu)
+	}
+})

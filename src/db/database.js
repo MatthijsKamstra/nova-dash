@@ -20,6 +20,16 @@ db.pragma('journal_mode = WAL')
 // ── Schema ───────────────────────────────────────────────────────────────────
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS stt_transcripts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    text       TEXT NOT NULL,
+    language   TEXT,
+    model      TEXT,
+    duration   INTEGER,
+    confidence REAL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS todos (
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     text      TEXT NOT NULL,
@@ -49,6 +59,33 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `)
+
+// Create FTS5 table for STT transcript search (after main tables)
+try {
+	db.exec(`
+		CREATE VIRTUAL TABLE IF NOT EXISTS stt_transcripts_fts USING fts5(
+			text,
+			content='stt_transcripts',
+			content_rowid='id'
+		);
+
+		-- Triggers to keep FTS in sync
+		CREATE TRIGGER IF NOT EXISTS stt_transcripts_ai AFTER INSERT ON stt_transcripts BEGIN
+			INSERT INTO stt_transcripts_fts(rowid, text) VALUES (new.id, new.text);
+		END;
+
+		CREATE TRIGGER IF NOT EXISTS stt_transcripts_ad AFTER DELETE ON stt_transcripts BEGIN
+			DELETE FROM stt_transcripts_fts WHERE rowid = old.id;
+		END;
+
+		CREATE TRIGGER IF NOT EXISTS stt_transcripts_au AFTER UPDATE ON stt_transcripts BEGIN
+			DELETE FROM stt_transcripts_fts WHERE rowid = old.id;
+			INSERT INTO stt_transcripts_fts(rowid, text) VALUES (new.id, new.text);
+		END;
+	`)
+} catch (err) {
+	console.warn('[DB] FTS5 setup warning (probably already exists):', err.message)
+}
 
 // ── To-Do ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +154,50 @@ function deleteNote(id) {
 	return db.prepare('DELETE FROM notes WHERE id = ?').run(id)
 }
 
+// ── STT Transcripts ──────────────────────────────────────────────────────────
+
+function saveSTTTranscript({ text, language, model, duration, confidence }) {
+	const stmt = db.prepare(`
+		INSERT INTO stt_transcripts (text, language, model, duration, confidence)
+		VALUES (?, ?, ?, ?, ?)
+	`)
+	const info = stmt.run(text, language || null, model || null, duration || null, confidence || null)
+	return db.prepare('SELECT * FROM stt_transcripts WHERE id = ?').get(info.lastInsertRowid)
+}
+
+function getSTTTranscripts(limit = 50, offset = 0) {
+	return db.prepare(`
+		SELECT * FROM stt_transcripts
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`).all(limit, offset)
+}
+
+function searchSTTTranscripts(query, limit = 50) {
+	try {
+		return db.prepare(`
+			SELECT t.* FROM stt_transcripts t
+			JOIN stt_transcripts_fts fts ON t.id = fts.rowid
+			WHERE stt_transcripts_fts MATCH ?
+			ORDER BY rank
+			LIMIT ?
+		`).all(query, limit)
+	} catch (err) {
+		console.error('[DB] FTS search error:', err.message)
+		// Fallback to LIKE search
+		return db.prepare(`
+			SELECT * FROM stt_transcripts
+			WHERE text LIKE ?
+			ORDER BY created_at DESC
+			LIMIT ?
+		`).all('%' + query + '%', limit)
+	}
+}
+
+function deleteSTTTranscript(id) {
+	return db.prepare('DELETE FROM stt_transcripts WHERE id = ?').run(id)
+}
+
 // ── Export ───────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -130,5 +211,9 @@ module.exports = {
 	setSetting,
 	getAllNotes,
 	saveNote,
-	deleteNote
+	deleteNote,
+	saveSTTTranscript,
+	getSTTTranscripts,
+	searchSTTTranscripts,
+	deleteSTTTranscript
 }

@@ -19,6 +19,7 @@
 		await renderPluginsSidebar()
 		bindSidebar()
 		bindThemeToggle()
+		setupTrayListeners()
 		await navigateTo('home')
 	})
 
@@ -201,6 +202,17 @@
 		btn.addEventListener('click', () => {
 			const current = document.documentElement.getAttribute('data-bs-theme')
 			applyTheme(current === 'dark' ? 'light' : 'dark')
+		})
+	}
+
+	// ── Tray Integration ───────────────────────────────────────────────────
+	function setupTrayListeners() {
+		if (!isElectron || !window.novaDash?.onTrayCommand) return
+
+		window.novaDash.onTrayCommand((cmd, data) => {
+			if (cmd === 'navigate') {
+				navigateTo(data)
+			}
 		})
 	}
 

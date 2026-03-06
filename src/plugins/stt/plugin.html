@@ -23,11 +23,20 @@
 		</div>
 		<div class="card-body text-center py-5">
 			<div id="recording-indicator" style="display: none;" class="mb-3">
-				<div class="spinner-border text-danger me-2" role="status">
-					<span class="visually-hidden">Recording...</span>
+				<div class="d-flex flex-column align-items-center">
+					<!-- VAD Visual Indicator -->
+					<div id="voice-activity-indicator" class="voice-idle mb-3">
+						<div class="voice-bar"></div>
+						<div class="voice-bar"></div>
+						<div class="voice-bar"></div>
+						<div class="voice-bar"></div>
+						<div class="voice-bar"></div>
+					</div>
+
+					<span class="text-danger fw-bold">Opname bezig...</span>
+					<div id="recording-time" class="text-muted mt-2">00:00</div>
+					<small class="text-muted mt-1" id="vad-status">Luisteren...</small>
 				</div>
-				<span class="text-danger fw-bold">Opname bezig...</span>
-				<div id="recording-time" class="text-muted mt-2">00:00</div>
 			</div>
 
 			<div id="ready-state">
@@ -121,6 +130,15 @@
 		</div>
 		<div class="collapse" id="history-section">
 			<div class="card-body">
+				<!-- Search -->
+				<div class="input-group mb-3">
+					<span class="input-group-text"><i class="bi bi-search"></i></span>
+					<input type="text" class="form-control" id="history-search" placeholder="Zoek in transcripties...">
+					<button class="btn btn-outline-secondary" id="clear-search-btn" style="display: none;">
+						<i class="bi bi-x"></i>
+					</button>
+				</div>
+
 				<div id="history-list" class="list-group">
 					<div class="list-group-item text-muted text-center py-3">
 						<small>Geen opnames nog</small>
@@ -151,6 +169,63 @@
 		}
 	}
 
+	/* VAD Visual Indicator */
+	#voice-activity-indicator {
+		display: flex;
+		gap: 4px;
+		height: 50px;
+		align-items: flex-end;
+		justify-content: center;
+	}
+
+	.voice-bar {
+		width: 10px;
+		background: var(--bs-secondary);
+		border-radius: 5px;
+		transition: height 0.1s ease, background-color 0.2s ease;
+		height: 15%;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar {
+		background: linear-gradient(to top, var(--bs-success), var(--bs-success-text));
+		animation: voice-bounce 0.4s ease-in-out infinite alternate;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar:nth-child(1) {
+		animation-delay: 0s;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar:nth-child(2) {
+		animation-delay: 0.05s;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar:nth-child(3) {
+		animation-delay: 0.1s;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar:nth-child(4) {
+		animation-delay: 0.05s;
+	}
+
+	#voice-activity-indicator.voice-active .voice-bar:nth-child(5) {
+		animation-delay: 0s;
+	}
+
+	@keyframes voice-bounce {
+		from {
+			height: calc(15% + (var(--volume, 0.5) * 20%));
+		}
+
+		to {
+			height: calc(40% + (var(--volume, 0.5) * 50%));
+		}
+	}
+
+	#voice-activity-indicator.voice-idle .voice-bar {
+		background: var(--bs-secondary);
+		height: 15%;
+	}
+
 	.transcript-history-item {
 		cursor: pointer;
 		transition: background-color 0.2s;
@@ -179,12 +254,22 @@
 	let whisperPipeline = null;
 	let currentModelSize = 'tiny';
 
+	// VAD (Voice Activity Detection)
+	let audioContext = null;
+	let analyser = null;
+	let vadCheckInterval = null;
+	let silenceStart = null;
+	const SILENCE_THRESHOLD = 15;
+	const SILENCE_DURATION = 3000; // 3 sec auto-stop
+	const isElectron = typeof window.novaDash !== 'undefined';
+
 	async function ensureTransformersLoaded() {
 		if (transformersPipeline) return;
 
 		const { pipeline, env } = await import(TRANSFORMERS_CDN_URL);
 		env.allowRemoteModels = true;
-		env.allowLocalModels = false;
+		env.allowLocalModels = true;
+		env.useBrowserCache = true; // Cache models in IndexedDB
 		transformersPipeline = pipeline;
 	}
 
@@ -207,12 +292,29 @@
 	const languageSelect = document.getElementById('language-select');
 	const historyList = document.getElementById('history-list');
 	const clearHistoryBtn = document.getElementById('clear-history-btn');
+	const historySearch = document.getElementById('history-search');
+	const clearSearchBtn = document.getElementById('clear-search-btn');
+	const voiceIndicator = document.getElementById('voice-activity-indicator');
+	const vadStatus = document.getElementById('vad-status');
 
 	// Initialize
 	async function init() {
 		loadHistory();
 		setupEventListeners();
 		await loadWhisperModel();
+
+		// Listen to tray commands (Electron only)
+		if (isElectron && window.novaDash.onTrayCommand) {
+			window.novaDash.onTrayCommand((cmd, data) => {
+				if (cmd === 'stt-start') {
+					if (!isRecording) startRecording();
+				} else if (cmd === 'stt-stop') {
+					if (isRecording) stopRecording();
+				} else if (cmd === 'navigate' && data === 'stt') {
+					// Already on this page
+				}
+			});
+		}
 	}
 
 	function setupEventListeners() {
@@ -226,6 +328,33 @@
 			currentModelSize = e.target.value;
 			loadWhisperModel();
 		});
+
+		// Search
+		historySearch.addEventListener('input', debounce(performSearch, 300));
+		clearSearchBtn.addEventListener('click', () => {
+			historySearch.value = '';
+			clearSearchBtn.style.display = 'none';
+			loadHistory();
+		});
+	}
+
+	function debounce(func, wait) {
+		let timeout;
+		return function (...args) {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => func.apply(this, args), wait);
+		};
+	}
+
+	function performSearch() {
+		const query = historySearch.value.trim();
+		if (query.length > 0) {
+			clearSearchBtn.style.display = 'block';
+			searchHistory(query);
+		} else {
+			clearSearchBtn.style.display = 'none';
+			loadHistory();
+		}
 	}
 
 	// Load Whisper model
@@ -245,7 +374,8 @@
 					if (progress.status === 'progress') {
 						const percent = Math.round((progress.loaded / progress.total) * 100);
 						loadProgress.style.width = percent + '%';
-						loadStatus.textContent = `Download: ${percent}%`;
+						const action = progress.file ? 'Laden' : 'Downloaden';
+						loadStatus.textContent = `${action}: ${percent}%`;
 					} else if (progress.status === 'ready') {
 						loadStatus.textContent = 'Model gereed!';
 					}
@@ -295,6 +425,8 @@
 			mediaRecorder.start();
 			updateRecordingUI();
 			startRecordingTimer();
+			startVADMonitoring(stream);
+			updateTrayStatus('recording');
 		} catch (error) {
 			console.error('Microphone error:', error);
 			const errName = error?.name || '';
@@ -313,11 +445,84 @@
 			mediaRecorder.stop();
 			isRecording = false;
 			clearInterval(recordingInterval);
+			stopVADMonitoring();
 
 			mediaRecorder.onstop = async () => {
 				const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+				updateTrayStatus('transcribing');
 				await transcribeAudio(audioBlob);
+				updateTrayStatus('idle');
 			};
+		}
+	}
+
+	// VAD Monitoring
+	function startVADMonitoring(stream) {
+		try {
+			audioContext = new AudioContext();
+			const source = audioContext.createMediaStreamSource(stream);
+			analyser = audioContext.createAnalyser();
+			analyser.fftSize = 256;
+			source.connect(analyser);
+
+			const bufferLength = analyser.frequencyBinCount;
+			const dataArray = new Uint8Array(bufferLength);
+
+			vadCheckInterval = setInterval(() => {
+				analyser.getByteFrequencyData(dataArray);
+				const sum = dataArray.reduce((acc, val) => acc + val * val, 0);
+				const rms = Math.sqrt(sum / bufferLength);
+
+				updateVoiceIndicator(rms);
+
+				// Auto-stop bij lange stilte
+				if (rms < SILENCE_THRESHOLD) {
+					if (!silenceStart) {
+						silenceStart = Date.now();
+						if (vadStatus) vadStatus.textContent = 'Stilte...';
+					} else if (Date.now() - silenceStart > SILENCE_DURATION) {
+						console.log('[VAD] Auto-stopping na stilte');
+						stopRecording();
+					}
+				} else {
+					silenceStart = null;
+					if (vadStatus) vadStatus.textContent = 'Spreekt...';
+				}
+			}, 50);
+		} catch (err) {
+			console.warn('[VAD] Failed to initialize:', err);
+		}
+	}
+
+	function updateVoiceIndicator(rms) {
+		if (!voiceIndicator) return;
+
+		const threshold = SILENCE_THRESHOLD;
+
+		if (rms > threshold) {
+			voiceIndicator.className = 'voice-active';
+			const volume = Math.min(rms / 80, 1);
+			voiceIndicator.style.setProperty('--volume', volume);
+		} else {
+			voiceIndicator.className = 'voice-idle';
+		}
+	}
+
+	function stopVADMonitoring() {
+		if (vadCheckInterval) {
+			clearInterval(vadCheckInterval);
+			vadCheckInterval = null;
+		}
+		if (audioContext) {
+			audioContext.close().catch(() => { });
+			audioContext = null;
+		}
+		silenceStart = null;
+	}
+
+	function updateTrayStatus(status) {
+		if (isElectron && window.novaDash?.tray) {
+			window.novaDash.tray.updateStatus(status);
 		}
 	}
 
@@ -377,8 +582,13 @@
 
 			const transcript = result.text.trim();
 
-			// Save to history
-			addToHistory(transcript);
+			// Save to history (DB or localStorage)
+			const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+			await addToHistory(transcript, {
+				language: languageSelect.value || 'auto',
+				model: `whisper-${currentModelSize}`,
+				duration
+			});
 
 			// Show transcript
 			showTranscript(transcript);
@@ -426,7 +636,30 @@
 	}
 
 	// History management
-	function addToHistory(text) {
+	async function addToHistory(text, options = {}) {
+		if (isElectron && window.novaDash?.stt) {
+			// Save to SQLite
+			try {
+				await window.novaDash.stt.save({
+					text,
+					language: options.language || null,
+					model: options.model || null,
+					duration: options.duration || null,
+					confidence: options.confidence || null
+				});
+				await loadHistory();
+			} catch (err) {
+				console.error('[STT] Failed to save to DB:', err);
+				// Fallback to localStorage
+				addToLocalStorageHistory(text);
+			}
+		} else {
+			// Browser mode: localStorage
+			addToLocalStorageHistory(text);
+		}
+	}
+
+	function addToLocalStorageHistory(text) {
 		const item = {
 			id: Date.now(),
 			text: text,
@@ -434,15 +667,37 @@
 		};
 		history.unshift(item);
 		if (history.length > 20) history.pop();
-		saveHistory();
+		saveLocalStorageHistory();
 		updateHistoryUI();
 	}
 
-	function saveHistory() {
+	function saveLocalStorageHistory() {
 		localStorage.setItem('nova_stt_history', JSON.stringify(history));
 	}
 
-	function loadHistory() {
+	async function loadHistory() {
+		if (isElectron && window.novaDash?.stt) {
+			try {
+				const transcripts = await window.novaDash.stt.getHistory(50, 0);
+				history = transcripts.map(t => ({
+					id: t.id,
+					text: t.text,
+					timestamp: new Date(t.created_at).toLocaleString('nl-NL'),
+					language: t.language,
+					model: t.model,
+					duration: t.duration
+				}));
+				updateHistoryUI();
+			} catch (err) {
+				console.error('[STT] Failed to load from DB:', err);
+				loadLocalStorageHistory();
+			}
+		} else {
+			loadLocalStorageHistory();
+		}
+	}
+
+	function loadLocalStorageHistory() {
 		const saved = localStorage.getItem('nova_stt_history');
 		if (saved) {
 			try {
@@ -454,22 +709,63 @@
 		}
 	}
 
+	async function searchHistory(query) {
+		if (isElectron && window.novaDash?.stt) {
+			try {
+				const results = await window.novaDash.stt.search(query, 50);
+				history = results.map(t => ({
+					id: t.id,
+					text: t.text,
+					timestamp: new Date(t.created_at).toLocaleString('nl-NL'),
+					language: t.language,
+					model: t.model,
+					duration: t.duration
+				}));
+				updateHistoryUI();
+			} catch (err) {
+				console.error('[STT] Search failed:', err);
+				// Fallback to local filter
+				loadLocalStorageHistory();
+				const filtered = history.filter(h =>
+					h.text.toLowerCase().includes(query.toLowerCase())
+				);
+				history = filtered;
+				updateHistoryUI();
+			}
+		} else {
+			// Browser: filter localStorage
+			loadLocalStorageHistory();
+			const filtered = history.filter(h =>
+				h.text.toLowerCase().includes(query.toLowerCase())
+			);
+			history = filtered;
+			updateHistoryUI();
+		}
+	}
+
 	function updateHistoryUI() {
 		if (history.length === 0) {
 			historyList.innerHTML = '<div class="list-group-item text-muted text-center py-3"><small>Geen opnames nog</small></div>';
 			clearHistoryBtn.style.display = 'none';
 		} else {
-			historyList.innerHTML = history.map(item => `
+			historyList.innerHTML = history.map(item => {
+				const metadata = [];
+				if (item.language) metadata.push(item.language);
+				if (item.duration) metadata.push(`${item.duration}s`);
+				const metaStr = metadata.length > 0 ? `<small class="text-muted ms-2">(${metadata.join(', ')})</small>` : '';
+
+				return `
 				<button class="list-group-item list-group-item-action transcript-history-item text-start" data-id="${item.id}">
 					<div class="d-flex justify-content-between align-items-start">
 						<div class="flex-grow-1">
 							<p class="mb-1">${escapeHtml(item.text).substring(0, 100)}${item.text.length > 100 ? '...' : ''}</p>
-							<small class="text-muted">${item.timestamp}</small>
+							<small class="text-muted">${item.timestamp}</small>${metaStr}
 						</div>
 						<i class="bi bi-chevron-right text-muted"></i>
 					</div>
 				</button>
-			`).join('');
+			`;
+			}).join('');
 			clearHistoryBtn.style.display = 'block';
 
 			// Add click handlers
@@ -486,10 +782,20 @@
 		}
 	}
 
-	function clearHistory() {
+	async function clearHistory() {
 		if (confirm('Wis alle transcripties?')) {
+			if (isElectron && window.novaDash?.stt) {
+				try {
+					// Delete all from DB
+					for (const item of history) {
+						await window.novaDash.stt.delete(item.id);
+					}
+				} catch (err) {
+					console.error('[STT] Failed to clear DB:', err);
+				}
+			}
 			history = [];
-			saveHistory();
+			saveLocalStorageHistory();
 			updateHistoryUI();
 			transcriptCard.style.display = 'none';
 		}

@@ -3,7 +3,7 @@
  * Provides functions to interact with the local Ollama service at localhost:11434
  */
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const OLLAMA_BASE_URL = 'http://localhost:11434'
 
 /**
  * Check if Ollama service is running
@@ -13,11 +13,11 @@ async function checkOllamaStatus() {
 	try {
 		const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
 			method: 'GET'
-		});
-		return response.ok;
+		})
+		return response.ok
 	} catch (error) {
-		console.error('Ollama not reachable:', error);
-		return false;
+		console.error('Ollama not reachable:', error)
+		return false
 	}
 }
 
@@ -27,13 +27,13 @@ async function checkOllamaStatus() {
  */
 async function getInstalledModels() {
 	try {
-		const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`);
-		if (!response.ok) throw new Error('Failed to fetch models');
-		const data = await response.json();
-		return data.models || [];
+		const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`)
+		if (!response.ok) throw new Error('Failed to fetch models')
+		const data = await response.json()
+		return data.models || []
 	} catch (error) {
-		console.error('Failed to get models:', error);
-		return [];
+		console.error('Failed to get models:', error)
+		return []
 	}
 }
 
@@ -51,22 +51,22 @@ function filterModelsByCategory(models, category) {
 		vision: /moondream|llava|vision|bakllava/i,
 		code: /coder|codellama|deepseek-coder|starcoder|qwen.*coder/i,
 		embed: /embed/i
-	};
+	}
 
-	const pattern = patterns[category];
-	if (!pattern) return models;
+	const pattern = patterns[category]
+	if (!pattern) return models
 
 	return models.filter(model => {
-		const name = model.name || '';
+		const name = model.name || ''
 		// Include if matches pattern, or if category is 'chat' and no specific pattern matches
-		if (pattern.test(name)) return true;
+		if (pattern.test(name)) return true
 		if (category === 'chat') {
 			// Exclude specialized models from general chat
-			const isSpecialized = /translate|flux|stable|diffusion|image|moondream|llava|vision|coder|embed/i.test(name);
-			return !isSpecialized;
+			const isSpecialized = /translate|flux|stable|diffusion|image|moondream|llava|vision|coder|embed/i.test(name)
+			return !isSpecialized
 		}
-		return false;
-	});
+		return false
+	})
 }
 
 /**
@@ -75,8 +75,8 @@ function filterModelsByCategory(models, category) {
  * @returns {Promise<Array>}
  */
 async function getSuggestedModels(category) {
-	const allModels = await getInstalledModels();
-	return filterModelsByCategory(allModels, category);
+	const allModels = await getInstalledModels()
+	return filterModelsByCategory(allModels, category)
 }
 
 /**
@@ -98,41 +98,42 @@ async function chatStream({ model, messages, onChunk, onComplete, onError }) {
 				messages,
 				stream: true
 			})
-		});
+		})
 
 		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
+			throw new Error(`HTTP error! status: ${response.status}`)
 		}
 
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let fullResponse = '';
+		const reader = response.body.getReader()
+		const decoder = new TextDecoder()
+		let fullResponse = ''
 
+		// eslint-disable-next-line no-constant-condition
 		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
+			const { done, value } = await reader.read()
+			if (done) break
 
-			const chunk = decoder.decode(value);
-			const lines = chunk.split('\n').filter(line => line.trim());
+			const chunk = decoder.decode(value)
+			const lines = chunk.split('\n').filter(line => line.trim())
 
 			for (const line of lines) {
 				try {
-					const data = JSON.parse(line);
+					const data = JSON.parse(line)
 					if (data.message?.content) {
-						fullResponse += data.message.content;
-						if (onChunk) onChunk(data.message.content);
+						fullResponse += data.message.content
+						if (onChunk) onChunk(data.message.content)
 					}
 					if (data.done && onComplete) {
-						onComplete(fullResponse);
+						onComplete(fullResponse)
 					}
 				} catch (parseError) {
-					console.error('Parse error:', parseError);
+					console.error('Parse error:', parseError)
 				}
 			}
 		}
 	} catch (error) {
-		console.error('Chat stream error:', error);
-		if (onError) onError(error);
+		console.error('Chat stream error:', error)
+		if (onError) onError(error)
 	}
 }
 
@@ -154,42 +155,43 @@ async function generateImage({ model, prompt, onProgress }) {
 				prompt,
 				stream: true
 			})
-		});
+		})
 
 		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
+			throw new Error(`HTTP error! status: ${response.status}`)
 		}
 
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let imageData = null;
+		const reader = response.body.getReader()
+		const decoder = new TextDecoder()
+		let imageData = null
 
+		// eslint-disable-next-line no-constant-condition
 		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
+			const { done, value } = await reader.read()
+			if (done) break
 
-			const chunk = decoder.decode(value);
-			const lines = chunk.split('\n').filter(line => line.trim());
+			const chunk = decoder.decode(value)
+			const lines = chunk.split('\n').filter(line => line.trim())
 
 			for (const line of lines) {
 				try {
-					const data = JSON.parse(line);
+					const data = JSON.parse(line)
 					if (onProgress && data.status) {
-						onProgress(data.status);
+						onProgress(data.status)
 					}
 					if (data.response) {
-						imageData = data.response;
+						imageData = data.response
 					}
 				} catch (parseError) {
-					console.error('Parse error:', parseError);
+					console.error('Parse error:', parseError)
 				}
 			}
 		}
 
-		return imageData;
+		return imageData
 	} catch (error) {
-		console.error('Image generation error:', error);
-		throw error;
+		console.error('Image generation error:', error)
+		throw error
 	}
 }
 
@@ -213,40 +215,41 @@ async function analyzeImage({ model, prompt, image, onChunk }) {
 				images: [image],
 				stream: true
 			})
-		});
+		})
 
 		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
+			throw new Error(`HTTP error! status: ${response.status}`)
 		}
 
-		const reader = response.body.getReader();
-		const decoder = new TextDecoder();
-		let fullResponse = '';
+		const reader = response.body.getReader()
+		const decoder = new TextDecoder()
+		let fullResponse = ''
 
+		// eslint-disable-next-line no-constant-condition
 		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
+			const { done, value } = await reader.read()
+			if (done) break
 
-			const chunk = decoder.decode(value);
-			const lines = chunk.split('\n').filter(line => line.trim());
+			const chunk = decoder.decode(value)
+			const lines = chunk.split('\n').filter(line => line.trim())
 
 			for (const line of lines) {
 				try {
-					const data = JSON.parse(line);
+					const data = JSON.parse(line)
 					if (data.response) {
-						fullResponse += data.response;
-						if (onChunk) onChunk(data.response);
+						fullResponse += data.response
+						if (onChunk) onChunk(data.response)
 					}
 				} catch (parseError) {
-					console.error('Parse error:', parseError);
+					console.error('Parse error:', parseError)
 				}
 			}
 		}
 
-		return fullResponse;
+		return fullResponse
 	} catch (error) {
-		console.error('Image analysis error:', error);
-		throw error;
+		console.error('Image analysis error:', error)
+		throw error
 	}
 }
 
@@ -260,7 +263,7 @@ if (typeof window !== 'undefined') {
 		chatStream,
 		generateImage,
 		analyzeImage
-	};
+	}
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -272,5 +275,5 @@ if (typeof module !== 'undefined' && module.exports) {
 		chatStream,
 		generateImage,
 		analyzeImage
-	};
+	}
 }

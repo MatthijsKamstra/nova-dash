@@ -35,5 +35,25 @@ contextBridge.exposeInMainWorld('novaDash', {
 		getAll: () => ipcRenderer.invoke('notes:getAll'),
 		save: (note) => ipcRenderer.invoke('notes:save', note),
 		delete: (id) => ipcRenderer.invoke('notes:delete', id)
+	},
+
+	// STT Transcripts
+	stt: {
+		save: (transcript) => ipcRenderer.invoke('stt:save', transcript),
+		getHistory: (limit, offset) => ipcRenderer.invoke('stt:getHistory', limit, offset),
+		search: (query, limit) => ipcRenderer.invoke('stt:search', query, limit),
+		delete: (id) => ipcRenderer.invoke('stt:delete', id)
+	},
+
+	// Tray
+	tray: {
+		updateStatus: (status) => ipcRenderer.send('tray:update-status', status)
+	},
+
+	// Listen to tray commands
+	onTrayCommand: (callback) => {
+		ipcRenderer.on('stt:start-recording', () => callback('stt-start'))
+		ipcRenderer.on('stt:stop-recording', () => callback('stt-stop'))
+		ipcRenderer.on('navigate-to', (_event, page) => callback('navigate', page))
 	}
 })

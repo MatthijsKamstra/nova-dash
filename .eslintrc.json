@@ -1,0 +1,79 @@
+{
+	"env": {
+		"browser": true,
+		"es2021": true,
+		"node": true
+	},
+	"extends": "eslint:recommended",
+	"parserOptions": {
+		"ecmaVersion": "latest",
+		"sourceType": "module"
+	},
+	"rules": {
+		"indent": [
+			"error",
+			"tab"
+		],
+		"linebreak-style": [
+			"error",
+			"unix"
+		],
+		"quotes": [
+			"warn",
+			"single",
+			{
+				"avoidEscape": true
+			}
+		],
+		"semi": [
+			"error",
+			"never"
+		],
+		"no-unused-vars": [
+			"warn",
+			{
+				"argsIgnorePattern": "^_"
+			}
+		],
+		"no-console": "off",
+		"no-mixed-spaces-and-tabs": "error",
+		"no-trailing-spaces": "warn",
+		"no-undef": "error",
+		"no-unreachable": "error",
+		"no-dupe-keys": "error"
+	},
+	"globals": {
+		"window": "readonly",
+		"document": "readonly",
+		"navigator": "readonly",
+		"localStorage": "readonly",
+		"AudioContext": "readonly",
+		"MediaRecorder": "readonly",
+		"OfflineAudioContext": "readonly",
+		"Blob": "readonly",
+		"URL": "readonly",
+		"Tesseract": "readonly"
+	},
+	"overrides": [
+		{
+			"files": [
+				"src/**/*.html"
+			],
+			"plugins": [],
+			"rules": {
+				"no-undef": "off"
+			}
+		},
+		{
+			"files": [
+				"main.js",
+				"preload.js",
+				"scripts/**/*.js"
+			],
+			"env": {
+				"node": true,
+				"browser": false
+			}
+		}
+	]
+}
