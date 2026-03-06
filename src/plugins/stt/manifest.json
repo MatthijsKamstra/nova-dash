@@ -5,6 +5,10 @@
   "description": "Record audio and transcribe to text",
   "enabledByDefault": true,
   "requiredPlatform": null,
+  "capabilities": ["microphone"],
+  "capabilityReasons": {
+    "microphone": "Nodig om spraak op te nemen voor lokale transcriptie."
+  },
   "requirements": [
     {
       "name": "Web Speech API",

@@ -39,7 +39,10 @@
     "productName": "NovaDash",
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "assets/icons/icon.icns"
+      "icon": "assets/icons/icon.icns",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "NovaDash gebruikt de microfoon voor Speech-to-Text transcripties."
+      }
     },
     "win": {
       "icon": "assets/icons/icon.ico"

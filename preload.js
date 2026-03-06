@@ -4,6 +4,11 @@ contextBridge.exposeInMainWorld('novaDash', {
 	// Platform — exposed synchronously so index.html can apply CSS class before first paint
 	platform: process.platform,
 	getPlatform: () => ipcRenderer.invoke('get-platform'),
+	permissions: {
+		getMicrophoneStatus: () => ipcRenderer.invoke('permissions:get-microphone-status'),
+		requestMicrophone: () => ipcRenderer.invoke('permissions:request-microphone'),
+		requestCapability: (pluginId, capability) => ipcRenderer.invoke('permissions:request-capability', pluginId, capability)
+	},
 
 	// To-Do
 	todo: {

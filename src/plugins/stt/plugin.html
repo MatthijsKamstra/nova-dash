@@ -31,8 +31,8 @@
 			</div>
 
 			<div id="ready-state">
-				<p class="text-muted mb-3">Klik op de microfoon en spreek. De opname wordt automatisch naar Whisper
-					gestuurd.</p>
+				<p class="text-muted mb-3">Klik op de microfoon en spreek. De opname wordt lokaal door Whisper verwerkt
+					op je eigen machine.</p>
 				<button class="btn btn-lg btn-danger" id="record-btn">
 					<i class="bi bi-mic-fill"></i> Start Opnemen
 				</button>
@@ -42,7 +42,7 @@
 				<div class="spinner-border text-primary mb-3" role="status">
 					<span class="visually-hidden">Processing...</span>
 				</div>
-				<p class="text-muted">Whisper verwerkt je spraak...</p>
+				<p class="text-muted">Whisper verwerkt je spraak lokaal...</p>
 			</div>
 
 			<div id="stop-state" style="display: none;">
@@ -167,11 +167,8 @@
 </style>
 
 <script type="module">
-	import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.5';
-
-	// Allow remote models
-	env.allowRemoteModels = true;
-	env.allowLocalModels = false;
+	const TRANSFORMERS_CDN_URL = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+	let transformersPipeline = null;
 
 	let mediaRecorder = null;
 	let audioChunks = [];
@@ -181,6 +178,15 @@
 	let history = [];
 	let whisperPipeline = null;
 	let currentModelSize = 'tiny';
+
+	async function ensureTransformersLoaded() {
+		if (transformersPipeline) return;
+
+		const { pipeline, env } = await import(TRANSFORMERS_CDN_URL);
+		env.allowRemoteModels = true;
+		env.allowLocalModels = false;
+		transformersPipeline = pipeline;
+	}
 
 	// Elements
 	const recordBtn = document.getElementById('record-btn');
@@ -225,13 +231,15 @@
 	// Load Whisper model
 	async function loadWhisperModel() {
 		try {
+			await ensureTransformersLoaded();
+
 			modelStatusAlert.style.display = 'block';
 			recordBtn.disabled = true;
 			loadStatus.textContent = `Whisper-${currentModelSize} model laden...`;
 
 			const modelName = `Xenova/whisper-${currentModelSize}`;
 
-			whisperPipeline = await pipeline('automatic-speech-recognition', modelName, {
+			whisperPipeline = await transformersPipeline('automatic-speech-recognition', modelName, {
 				quantized: true,
 				progress_callback: (progress) => {
 					if (progress.status === 'progress') {
@@ -257,6 +265,23 @@
 	// Recording
 	async function startRecording() {
 		try {
+			if (window.novaDash?.permissions) {
+				const permissionResult = await window.novaDash.permissions.requestCapability('stt', 'microphone');
+				if (!permissionResult?.granted) {
+					if (permissionResult?.reason === 'capability-not-declared') {
+						alert('STT plugin mist capability declaratie voor microfoon in manifest.json.');
+					} else {
+						alert('Microfoon toegang geweigerd. Geef NovaDash toegang via Systeeminstellingen > Privacy en beveiliging > Microfoon.');
+					}
+					return;
+				}
+			}
+
+			if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+				alert('Microfoon API niet beschikbaar in deze omgeving.');
+				return;
+			}
+
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 			mediaRecorder = new MediaRecorder(stream);
 			audioChunks = [];
@@ -272,7 +297,14 @@
 			startRecordingTimer();
 		} catch (error) {
 			console.error('Microphone error:', error);
-			alert('Microfoon-toegang geweigerd of niet beschikbaar.');
+			const errName = error?.name || '';
+			if (errName === 'NotAllowedError' || errName === 'SecurityError') {
+				alert('Microfoon toegang geweigerd. Controleer macOS Microfoon permissies voor NovaDash en probeer opnieuw.');
+			} else if (errName === 'NotFoundError') {
+				alert('Geen microfoon gevonden op dit systeem.');
+			} else {
+				alert(`Microfoon fout: ${error.message || 'onbekende fout'}`);
+			}
 		}
 	}
 

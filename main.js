@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, session } = require('electron')
+const { app, BrowserWindow, ipcMain, session, systemPreferences } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
 // Enable hot reload in development
 if (process.env.NODE_ENV !== 'production') {
@@ -15,6 +16,33 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Setup SQLite database
 const db = require('./src/db/database')
+
+const pluginManifestCache = new Map()
+
+function getPluginManifest(pluginId) {
+	if (!pluginId) return null
+	if (pluginManifestCache.has(pluginId)) {
+		return pluginManifestCache.get(pluginId)
+	}
+
+	try {
+		const manifestPath = path.join(__dirname, 'src', 'plugins', pluginId, 'manifest.json')
+		const raw = fs.readFileSync(manifestPath, 'utf8')
+		const manifest = JSON.parse(raw)
+		pluginManifestCache.set(pluginId, manifest)
+		return manifest
+	} catch (err) {
+		console.warn(`[permissions] Failed to load manifest for plugin: ${pluginId}`, err.message)
+		return null
+	}
+}
+
+function pluginDeclaresCapability(pluginId, capability) {
+	const manifest = getPluginManifest(pluginId)
+	if (!manifest) return false
+	const capabilities = Array.isArray(manifest.capabilities) ? manifest.capabilities : []
+	return capabilities.includes(capability)
+}
 
 function createWindow() {
 	const win = new BrowserWindow({
@@ -47,20 +75,36 @@ function createWindow() {
 
 app.whenReady().then(() => {
 	// Allow geolocation permissions for weather plugin
-	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+	session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
 		// Auto-approve geolocation for local weather
 		if (permission === 'geolocation') {
 			callback(true)
+			return
+		}
+
+		// Allow microphone capture for Speech-to-Text plugin
+		if (permission === 'media') {
+			const mediaTypes = details?.mediaTypes || []
+			const requestsAudio = mediaTypes.length === 0 || mediaTypes.includes('audio')
+			callback(requestsAudio)
+			return
 		} else {
 			callback(false)
 		}
 	})
 
 	// Also handle permission checks
-	session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+	session.defaultSession.setPermissionCheckHandler((webContents, permission, _requestingOrigin, details) => {
 		if (permission === 'geolocation') {
 			return true
 		}
+
+		if (permission === 'media') {
+			const mediaType = details?.mediaType
+			const mediaTypes = details?.mediaTypes || []
+			return mediaType === 'audio' || mediaTypes.includes('audio')
+		}
+
 		return false
 	})
 
@@ -79,6 +123,45 @@ app.on('window-all-closed', () => {
 
 // Platform detection
 ipcMain.handle('get-platform', () => process.platform)
+
+ipcMain.handle('permissions:get-microphone-status', () => {
+	if (process.platform !== 'darwin') return 'granted'
+	return systemPreferences.getMediaAccessStatus('microphone')
+})
+
+ipcMain.handle('permissions:request-microphone', async () => {
+	if (process.platform !== 'darwin') return true
+	return systemPreferences.askForMediaAccess('microphone')
+})
+
+ipcMain.handle('permissions:request-capability', async (_event, pluginId, capability) => {
+	if (!pluginId || !capability) {
+		return { granted: false, reason: 'invalid-request' }
+	}
+
+	if (!pluginDeclaresCapability(pluginId, capability)) {
+		return { granted: false, reason: 'capability-not-declared' }
+	}
+
+	if (capability === 'microphone') {
+		if (process.platform !== 'darwin') {
+			return { granted: true, reason: 'granted' }
+		}
+
+		const status = systemPreferences.getMediaAccessStatus('microphone')
+		if (status === 'granted') {
+			return { granted: true, reason: 'already-granted' }
+		}
+
+		const granted = await systemPreferences.askForMediaAccess('microphone')
+		return {
+			granted,
+			reason: granted ? 'granted' : 'denied'
+		}
+	}
+
+	return { granted: false, reason: 'unsupported-capability' }
+})
 
 // ── To-Do ──
 ipcMain.handle('todo:getAll', () => db.getAllTodos())
