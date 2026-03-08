@@ -143,56 +143,20 @@ async function chatStream({ model, messages, onChunk, onComplete, onError }) {
  * @param {string} options.model - Image generation model
  * @param {string} options.prompt - Image description
  * @param {Function} options.onProgress - Progress callback
- * @returns {Promise<string>} Base64 image data
+ * @returns {Promise<string>} Absolute path to the saved image file
  */
-async function generateImage({ model, prompt, onProgress }) {
-	try {
-		const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				model,
-				prompt,
-				stream: true
-			})
-		})
-
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`)
+async function generateImage({ model, prompt, width, height, steps, seed, negativePrompt, onProgress }) {
+	// Image generation uses the ollama CLI (not the REST API).
+	// The main process spawns `ollama run <model>`, pipes /set commands + prompt,
+	// and saves the resulting image to ~/Downloads.
+	if (typeof window !== 'undefined' && window.novaDash && window.novaDash.imagegen) {
+		if (onProgress) {
+			window.novaDash.imagegen.offProgress()
+			window.novaDash.imagegen.onProgress(onProgress)
 		}
-
-		const reader = response.body.getReader()
-		const decoder = new TextDecoder()
-		let imageData = null
-
-		// eslint-disable-next-line no-constant-condition
-		while (true) {
-			const { done, value } = await reader.read()
-			if (done) break
-
-			const chunk = decoder.decode(value)
-			const lines = chunk.split('\n').filter(line => line.trim())
-
-			for (const line of lines) {
-				try {
-					const data = JSON.parse(line)
-					if (onProgress && data.status) {
-						onProgress(data.status)
-					}
-					if (data.response) {
-						imageData = data.response
-					}
-				} catch (parseError) {
-					console.error('Parse error:', parseError)
-				}
-			}
-		}
-
-		return imageData
-	} catch (error) {
-		console.error('Image generation error:', error)
-		throw error
+		return window.novaDash.imagegen.generate({ model, prompt, width, height, steps, seed, negativePrompt })
 	}
+	throw new Error('Image generation requires the Electron app (CLI access not available in browser mode).')
 }
 
 /**

@@ -280,6 +280,70 @@ ipcMain.handle('notes:getAll', () => db.getAllNotes())
 ipcMain.handle('notes:save', (_e, note) => db.saveNote(note))
 ipcMain.handle('notes:delete', (_e, id) => db.deleteNote(id))
 
+// ── Image generation (CLI) ──
+ipcMain.handle('imagegen:generate', async (event, { model, prompt, width, height, steps, seed, negativePrompt }) => {
+	const { spawn } = require('child_process')
+	const downloadsPath = app.getPath('downloads')
+
+	// Build the lines to pipe into ollama stdin
+	const lines = []
+	if (width) lines.push(`/set width ${width}`)
+	if (height) lines.push(`/set height ${height}`)
+	if (steps) lines.push(`/set steps ${steps}`)
+	if (seed !== undefined) lines.push(`/set seed ${seed}`)
+	if (negativePrompt) lines.push(`/set negative ${negativePrompt}`)
+	lines.push(prompt)
+	lines.push('/bye')
+	const input = lines.join('\n') + '\n'
+
+	return new Promise((resolve, reject) => {
+		// Snapshot files before so we can detect the new one
+		const before = new Set(fs.readdirSync(downloadsPath))
+
+		const proc = spawn('ollama', ['run', model], {
+			cwd: downloadsPath,
+			env: { ...process.env }
+		})
+
+		let stderr = ''
+		proc.stderr.on('data', (d) => { stderr += d.toString() })
+
+		// Forward stdout lines as progress events to renderer
+		proc.stdout.on('data', (d) => {
+			const text = d.toString().trim()
+			if (text) event.sender.send('imagegen:progress', text)
+		})
+
+		proc.stdin.write(input)
+		proc.stdin.end()
+
+		const timeout = setTimeout(() => {
+			proc.kill()
+			reject(new Error('Image generation timed out.'))
+		}, 600000)
+
+		proc.on('close', (code) => {
+			clearTimeout(timeout)
+			if (code !== 0) {
+				return reject(new Error(`ollama exited with code ${code}: ${stderr}`))
+			}
+			// Find the new image file in Downloads
+			const after = fs.readdirSync(downloadsPath)
+			const newFiles = after.filter(f => !before.has(f) && /\.(png|jpg|jpeg|webp)$/i.test(f))
+			if (newFiles.length === 0) {
+				return reject(new Error('Generation finished but no image file was found in Downloads.'))
+			}
+			// Pick the most recently modified one
+			newFiles.sort((a, b) => {
+				const sa = fs.statSync(path.join(downloadsPath, a)).mtimeMs
+				const sb = fs.statSync(path.join(downloadsPath, b)).mtimeMs
+				return sb - sa
+			})
+			resolve(path.join(downloadsPath, newFiles[0]))
+		})
+	})
+})
+
 // ── STT Transcripts ──
 ipcMain.handle('stt:save', (_e, transcript) => db.saveSTTTranscript(transcript))
 ipcMain.handle('stt:getHistory', (_e, limit, offset) => db.getSTTTranscripts(limit, offset))

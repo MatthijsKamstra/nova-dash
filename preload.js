@@ -45,6 +45,13 @@ contextBridge.exposeInMainWorld('novaDash', {
 		delete: (id) => ipcRenderer.invoke('stt:delete', id)
 	},
 
+	// Image generation via CLI
+	imagegen: {
+		generate: (params) => ipcRenderer.invoke('imagegen:generate', params),
+		onProgress: (cb) => ipcRenderer.on('imagegen:progress', (_e, msg) => cb(msg)),
+		offProgress: () => ipcRenderer.removeAllListeners('imagegen:progress')
+	},
+
 	// Tray
 	tray: {
 		updateStatus: (status) => ipcRenderer.send('tray:update-status', status)
